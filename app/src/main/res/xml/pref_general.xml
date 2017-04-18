@@ -1,0 +1,31 @@
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <SwitchPreference
+        android:defaultValue="false"
+        android:key="gps_autostart_switch"
+        android:summary="@string/pref_description_gps_autostart"
+        android:title="@string/pref_title_gps_autostart"
+        android:id="@+id/autoStartGPSSwitch"
+        android:icon="@drawable/autostart"/>
+
+    <Preference
+        android:id="@+id/licensesButton"
+        android:key="license_button"
+        android:summary="@string/pref_description_license"
+        android:title="@string/pref_title_license"
+        android:icon="@drawable/license" />
+
+    <Preference
+        android:id="@+id/aboutButton"
+        android:key="about_button"
+        android:summary="@string/pref_description_about"
+        android:title="@string/pref_title_about"
+        android:icon="@drawable/about" />
+
+    <Preference
+        android:id="@+id/calibrateButton"
+        android:key="calibrate_button"
+        android:summary="@string/pref_description_calibrate"
+        android:title="@string/pref_title_calibrate"
+        android:icon="@drawable/calibrate2" />
+</PreferenceScreen>

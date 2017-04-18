@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <com.atilim.uni.unipath.customs.CustomPanoramaImageView
+        android:id="@+id/atilimOverViewPanoramaImageView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="visible"
+        android:src="@drawable/atilim_overview"
+        app:piv_enablePanoramaMode="true"
+        app:piv_show_scrollbar="false"
+        app:piv_invertScrollDirection="false"/>
+</LinearLayout>

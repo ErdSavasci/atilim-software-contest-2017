@@ -1,0 +1,45 @@
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:map="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_height="match_parent"
+    android:layout_width="match_parent">
+    <fragment
+        android:id="@+id/map"
+        android:name="com.google.android.gms.maps.SupportMapFragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        tools:context="com.atilim.uni.unipath.MapsActivity"
+        tools:layout="@layout/dummy_maps_ss">
+    </fragment>
+
+    <ImageButton
+        android:id="@+id/drawerButton"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="30dp"
+        android:background="@drawable/drawer"
+        android:contentDescription="@string/imagebutton_content_description" />
+
+    <ImageButton
+        android:id="@+id/refreshButton"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:background="@android:drawable/stat_notify_sync"
+        android:contentDescription="@string/imagebutton_content_description"
+        android:layout_below="@+id/drawerButton"
+        android:layout_alignStart="@+id/drawerButton" />
+
+    <Spinner
+        android:id="@+id/routeOptionSpinner"
+        android:layout_width="wrap_content"
+        android:layout_height="30dp"
+        android:layout_gravity="bottom|end"
+        android:scrollbars="none"
+        android:background="@android:color/transparent"
+        android:spinnerMode="dropdown"
+        android:popupBackground="@android:color/transparent"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentEnd="true" />
+</RelativeLayout>

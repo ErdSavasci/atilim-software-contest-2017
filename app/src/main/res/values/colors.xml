@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#005AAB</color>
+    <color name="colorPrimaryDark">#003C81</color>
+    <color name="colorAccent">#E20A16</color>
+
+    <color name="disable_foreground">#A7060F</color>
+    <color name="disable_thumb">#E20A16</color>
+    <color name="enable_thumb">#005AAB</color>
+
+    <color name="default_background">#F3F3F3</color>
+</resources>

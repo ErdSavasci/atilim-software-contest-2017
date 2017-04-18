@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.atilim.uni.unipath.CalibrateActivity">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/calibrate_header_text"
+        android:textStyle="bold"
+        android:textSize="20sp"
+        android:textColor="@color/colorPrimary"
+        android:background="@drawable/text_back"
+        android:textAlignment="center"
+        android:textAllCaps="true"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="88dp"
+        android:id="@+id/textView3" />
+
+    <com.atilim.uni.unipath.extralib.TouchImageView
+        android:id="@+id/floorPlanCalibrateImageView"
+        android:layout_width="300dp"
+        android:layout_height="140dp"
+        android:src="@drawable/engfloorminus2"
+        android:layout_below="@+id/textView3"
+        android:layout_alignStart="@+id/dwScrollingValuePicker"
+        android:layout_marginTop="29dp" />
+
+    <com.tistory.dwfox.dwrulerviewlibrary.view.ScrollingValuePicker
+        android:id="@+id/dwScrollingValuePicker"
+        android:layout_width="300dp"
+        android:layout_height="70dp"
+        android:layout_marginBottom="15dp"
+        android:layout_above="@+id/referencePointPositionTextView"
+        android:layout_centerHorizontal="true" />
+
+    <com.gc.materialdesign.views.ButtonRectangle
+        android:layout_width="120dp"
+        android:layout_height="70dp"
+        android:id="@+id/startCalibrateButton"
+        android:text="@string/calibrate_button_text"
+        android:layout_marginBottom="76dp"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true" />
+
+    <com.gc.materialdesign.views.ButtonRectangle
+        android:layout_width="100dp"
+        android:layout_height="70dp"
+        android:id="@+id/clearDotButton"
+        android:text="@string/clear_button_text"
+        android:layout_alignBaseline="@+id/startCalibrateButton"
+        android:layout_alignBottom="@+id/startCalibrateButton"
+        android:layout_alignEnd="@+id/dwScrollingValuePicker"
+        android:layout_toEndOf="@+id/textView3" />
+
+    <TextView
+        android:id="@+id/referencePointPositionTextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="19dp"
+        android:paddingStart="5dp"
+        android:paddingEnd="5dp"
+        android:textStyle="bold"
+        android:textColor="@color/colorPrimary"
+        android:background="@drawable/text_back"
+        android:textSize="20sp"
+        android:text="1"
+        android:textAlignment="center"
+        android:textAllCaps="true"
+        android:layout_above="@+id/startCalibrateButton"
+        android:layout_centerHorizontal="true" />
+
+    <Spinner
+        android:id="@+id/floorPlanSelectorSpinner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/floorPlanCalibrateImageView"
+        android:layout_above="@+id/dwScrollingValuePicker"
+        android:layout_alignEnd="@+id/floorPlanCalibrateImageView"
+        android:layout_alignStart="@+id/floorPlanCalibrateImageView" />
+
+</RelativeLayout>

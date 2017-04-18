@@ -1,0 +1,49 @@
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <!-- Atilim Mainly Color Codes -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+
+    <style name="AppTheme.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+
+    <style name="AppTheme.ActionBar">
+        <item name="windowActionBar">true</item>
+        <item name="windowNoTitle">false</item>
+    </style>
+
+    <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
+
+    <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
+
+    <style name="AppTheme.AtilimTheme">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:windowTranslucentNavigation">true</item>
+        <item name="android:windowBackground">@color/colorPrimary</item>
+    </style>
+
+    <style name="AppTheme.AtilimTheme.Splash">
+        <item name="android:windowBackground">@color/colorPrimary</item>
+    </style>
+
+    <style name="AppTheme.AtilimTheme.FullScreen">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowNoTitle">true</item>
+    </style>
+
+    <style name="AppTheme.AtilimTheme.SwitchTheme" parent="Widget.AppCompat.CompoundButton.Switch">
+        <item name="colorControlActivated">@color/enable_thumb</item>
+        <item name="colorSwitchThumbNormal">#F1F1F1</item>
+        <item name="android:colorForeground">@color/disable_foreground</item>
+        <item name="android:textAppearance">@style/TextAppearance.AppCompat.Widget.Switch</item>
+    </style>
+
+</resources>
