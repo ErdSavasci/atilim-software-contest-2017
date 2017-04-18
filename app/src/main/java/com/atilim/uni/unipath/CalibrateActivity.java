@@ -15,6 +15,7 @@ import android.graphics.PointF;
 import android.graphics.drawable.BitmapDrawable;
 import android.location.LocationManager;
 import android.media.MediaScannerConnection;
+import android.net.Uri;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.Build;
@@ -39,7 +40,9 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.atilim.uni.unipath.customs.CustomSpinner;
 import com.atilim.uni.unipath.extralib.TouchImageView;
+import com.atilim.uni.unipath.interfaces.OnSpinnerEventsListenerInterface;
 import com.atilim.uni.unipath.utils.AccessPointInfo;
 import com.gc.materialdesign.views.ButtonRectangle;
 import com.google.android.gms.common.ConnectionResult;
@@ -173,8 +176,8 @@ public class CalibrateActivity extends AppCompatActivity implements GoogleApiCli
             }
         });
 
-        Spinner floorPlanSelectorSpinner = (Spinner) findViewById(R.id.floorPlanSelectorSpinner);
-        ArrayAdapter<CharSequence> aa = ArrayAdapter.createFromResource(this, R.array.floor_numbers_array, R.layout.simple_list_item_customized_2);
+        final CustomSpinner floorPlanSelectorSpinner = (CustomSpinner) findViewById(R.id.floorPlanSelectorSpinner);
+        ArrayAdapter<CharSequence> aa = ArrayAdapter.createFromResource(this, R.array.floor_numbers_array, R.layout.simple_list_item_customized);
         floorPlanSelectorSpinner.setAdapter(aa);
         floorPlanSelectorSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -201,6 +204,17 @@ public class CalibrateActivity extends AppCompatActivity implements GoogleApiCli
                 floorPlanCalibrateImage.setImageDrawable(new BitmapDrawable(getResources(), floorPlanImage));
                 floorPlanCalibrateImage.setCurrentImageName("engfloorminus2");
                 floorPlanCalibrateImage.setPackageName(getPackageName());
+            }
+        });
+        floorPlanSelectorSpinner.setOnSpinnerEventsListenerInterface(new OnSpinnerEventsListenerInterface() {
+            @Override
+            public void whenSpinnerOpened(Spinner spinner) {
+
+            }
+
+            @Override
+            public void whenSpinnerClosed(Spinner spinner) {
+
             }
         });
 
@@ -310,7 +324,7 @@ public class CalibrateActivity extends AppCompatActivity implements GoogleApiCli
                 turnOnGPS(true);
                 Toast.makeText(getApplicationContext(), "GPS isn't active. Please activate GPS.", Toast.LENGTH_SHORT).show();
             } else {
-                String rootFolder;
+                String rootFolder = null;
                 File txtDir = null;
                 String txtFileName = "";
 
@@ -336,6 +350,10 @@ public class CalibrateActivity extends AppCompatActivity implements GoogleApiCli
                         isSuccess = true;
 
                     if (!Objects.equals(txtFileName, "") && isSuccess) {
+                        txtDir.setExecutable(true);
+                        txtDir.setReadable(true);
+                        txtDir.setWritable(true);
+
                         File txtFile = new File(txtDir, txtFileName);
                         if (!txtFile.exists())
                             isSuccess = txtFile.createNewFile();
@@ -379,16 +397,16 @@ public class CalibrateActivity extends AppCompatActivity implements GoogleApiCli
                                 fileWriter.append(referencePoint.toString());
                                 Toast.makeText(getApplicationContext(), "Reference point " + referencePointID + " save successful", Toast.LENGTH_SHORT).show();
 
-                                DWUtils.scrollToValue(scrollingValuePicker.getScrollView(), referencePointID + 1, 100, 1, scrollingValuePicker.getViewMultipleSize());
-                                refPointPositionTextView.setText(String.valueOf(referencePointID + 1));
+                                this.referencePointID++;
+                                DWUtils.scrollToValue(scrollingValuePicker.getScrollView(), this.referencePointID, 100, 1, scrollingValuePicker.getViewMultipleSize());
+                                refPointPositionTextView.setText(String.valueOf(this.referencePointID));
 
-                                if(txtDir != null){
-                                    txtDir.setExecutable(true);
-                                    txtDir.setReadable(true);
-                                    txtDir.setWritable(true);
+                                Intent mediaScannerIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+                                Uri fileContentUri = Uri.fromFile(txtDir);
+                                mediaScannerIntent.setData(fileContentUri);
+                                this.sendBroadcast(mediaScannerIntent);
 
-                                    MediaScannerConnection.scanFile(CalibrateActivity.this, new String[]{ txtDir.toString() }, null, null);
-                                }
+                                MediaScannerConnection.scanFile(getApplicationContext(), new String[]{ txtDir.toString() }, null, null);
 
                             } catch (JSONException ex) {
                                 Toast.makeText(getApplicationContext(), "Cannot save", Toast.LENGTH_SHORT).show();
