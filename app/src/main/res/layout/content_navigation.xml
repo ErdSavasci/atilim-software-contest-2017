@@ -12,7 +12,10 @@
         android:id="@+id/floorPlanImageNavigation"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:visibility="gone"/>
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:src="@drawable/engfloorminus2"
+        android:visibility="gone" />
 
     <android.support.v7.widget.RecyclerView
         android:id="@+id/recyclerViewPanorama"
@@ -21,15 +24,22 @@
         android:layout_alignParentStart="true"
         android:layout_alignParentTop="true" />
 
+    <ImageView
+        android:id="@+id/roundCornersImageViewNavigation"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/layout_rounded_corner"
+        android:scaleType="fitXY"
+        android:contentDescription="@string/imageview_content_description"/>
+
     <ImageButton
         android:id="@+id/drawerButtonNavigation"
         android:layout_width="50dp"
         android:layout_height="50dp"
+        android:layout_alignStart="@+id/refreshButtonNavigation"
         android:layout_marginTop="30dp"
         android:background="@drawable/drawer"
-        android:contentDescription="@string/imagebutton_content_description"
-        android:layout_below="@+id/floorPlanImageNavigation"
-        android:layout_alignStart="@+id/refreshButtonNavigation" />
+        android:contentDescription="@string/imagebutton_content_description" />
 
     <ImageButton
         android:id="@+id/refreshButtonNavigation"
@@ -38,30 +48,30 @@
         android:background="@android:drawable/stat_notify_sync"
         android:contentDescription="@string/imagebutton_content_description"
         android:layout_below="@+id/drawerButtonNavigation"
-        android:layout_toEndOf="@+id/floorPlanImageNavigation"
         android:layout_marginStart="10dp" />
 
     <TextView
         android:id="@+id/notInCampusAlertTextView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
         android:layout_marginBottom="119dp"
+        android:background="@drawable/text_back"
+        android:paddingEnd="5dp"
+        android:paddingStart="5dp"
         android:text="@string/user_is_not_in_university_text"
         android:textAlignment="center"
         android:textAllCaps="true"
-        android:background="@drawable/text_back"
         android:textColor="@color/colorPrimary"
         android:textSize="18sp"
-        android:textStyle="bold"
-        android:paddingStart="5dp"
-        android:paddingEnd="5dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toRightOf="parent"
-        tools:layout_constraintBottom_creator="1"
-        tools:layout_constraintLeft_creator="1"
-        tools:layout_constraintRight_creator="1"
-        android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true" />
+        android:textStyle="bold" />
+
+    <com.atilim.uni.unipath.customs.CustomSpinner
+        android:id="@+id/floorPlanSelectorSpinnerNavigation"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignTop="@+id/drawerButtonNavigation"
+        android:layout_alignParentEnd="true" />
 
 </RelativeLayout>

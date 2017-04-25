@@ -27,11 +27,19 @@
         <item name="windowNoTitle">true</item>
         <item name="android:windowTranslucentStatus">true</item>
         <item name="android:windowTranslucentNavigation">true</item>
-        <item name="android:windowBackground">@color/colorPrimary</item>
+        <item name="android:windowBackground">@drawable/splash_layout_rounded_corner</item>
     </style>
 
     <style name="AppTheme.AtilimTheme.Splash">
-        <item name="android:windowBackground">@color/colorPrimary</item>
+        <item name="android:windowBackground">@drawable/splash_layout_rounded_corner</item>
+    </style>
+
+    <style name="AppTheme.AtilimSettings">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:windowTranslucentNavigation">true</item>
+        <item name="android:windowBackground">@drawable/settings_layout_rounded_corner</item>
     </style>
 
     <style name="AppTheme.AtilimTheme.FullScreen">

@@ -1,17 +1,22 @@
 package com.atilim.uni.unipath;
 
 import android.Manifest;
-import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Matrix;
+import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
@@ -21,6 +26,7 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
@@ -30,13 +36,15 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.util.SparseArray;
+import android.view.Display;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -47,6 +55,7 @@ import com.atilim.uni.unipath.cons.Globals;
 import com.atilim.uni.unipath.converters.DMS;
 import com.atilim.uni.unipath.customs.CustomGyroscopeObserver;
 import com.atilim.uni.unipath.customs.CustomPanoramaImageView;
+import com.atilim.uni.unipath.customs.CustomSpinner;
 import com.atilim.uni.unipath.customs.CustomThread;
 import com.atilim.uni.unipath.extralib.TouchImageView;
 import com.atilim.uni.unipath.interfaces.AfterAsyncTaskFinishInterface;
@@ -81,11 +90,6 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import im.delight.android.location.SimpleLocation;
-import io.nlopez.smartlocation.OnLocationUpdatedListener;
-import io.nlopez.smartlocation.SmartLocation;
-import io.nlopez.smartlocation.location.providers.LocationGooglePlayServicesWithFallbackProvider;
-
 public class NavigationActivity extends BaseActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener {
     private Location mLocationOfUser;
     private GoogleApiClient mGoogleApiClient;
@@ -95,7 +99,9 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
     private boolean isUserInUniversityArea;
     private boolean isGPSOn;
     private boolean isLastTimeGPSOn;
-    private CustomThread customThreadCheckLocation, customThreadCheckGPSState;
+    private boolean isWifiOn;
+    private boolean isLastTimeWifiOn;
+    private CustomThread customThreadCheckLocation, customThreadCheckGPSState, customThreadCheckWifiState;
     private LocationManager locationManager;
     private TextView notInCampusAlertTextView;
     private TouchImageView floorPlanNavigationImageImageView;
@@ -121,6 +127,11 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
     private Bitmap atilimOverview;
     private View contentDecorView;
     private RecyclerView recyclerView;
+    private Bitmap atilimOverviewOutput;
+    private WifiManager wifiManager;
+    private boolean isLocationFound;
+    private ImageButton refreshButtonNavigation;
+    private CustomSpinner floorPlanSelectorSpinner;
 
     private static final String LOCATION_ADDRESS_KEY = "LOCATION_ADDRESS";
     private static final int LOCATION_ACCESS_PERMISSIONS_REQ = 1;
@@ -158,114 +169,105 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
 
             Globals.isUserInUniversityArea = isUserInUniversityArea;
 
-            if (isUserInUniversityArea && mLocationOfUser != null) {
-                if(mLocationOfUser.getAccuracy() > 20) {
-                    //FIND FLOOR NUMBER
-                    final double altitude = mLocationOfUser.getAltitude();
+            if (wifiManager.isWifiEnabled()) {
+                if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                    if (isUserInUniversityArea && mLocationOfUser != null) {
+                        if (mLocationOfUser.getAccuracy() >= 10) {
+                            //FIND FLOOR NUMBER
+                            final double altitude = mLocationOfUser.getAltitude();
 
-                    final DMS toBeConvertedLatLng = new DMS(mLocationOfUser.getLatitude(), mLocationOfUser.getLongitude());
-                    final DMS convertedLatLng = toBeConvertedLatLng.convertIntoDMS();
+                            final DMS toBeConvertedLatLng = new DMS(mLocationOfUser.getLatitude(), mLocationOfUser.getLongitude());
+                            final DMS convertedLatLng = toBeConvertedLatLng.convertIntoDMS();
 
-                    if (altitude == 0) {
-                        RetrieveResponseFromURL retrieveResponseFromURL = new RetrieveResponseFromURL(convertedLatLng);
-                        retrieveResponseFromURL.setDelegate(new AfterAsyncTaskFinishInterface() {
-                            @Override
-                            public void afterAsyncTaskFinish(String result) {
-                                try {
-                                    String res = result;
-                                    res = res.substring(res.lastIndexOf("<span style=\"font-size:20px\">") + 29);
-                                    res = res.substring(0, res.indexOf("</span> meters<br/>"));
-                                    final double elevationHeight = Double.parseDouble(res);
-                                    convertedLatLng.setElevationHeight(elevationHeight);
-                                    final RetrieveResponseFromURL retrieveResponseFromURL = new RetrieveResponseFromURL(convertedLatLng);
-                                    retrieveResponseFromURL.setDelegate(new AfterAsyncTaskFinishInterface() {
-                                        @Override
-                                        public void afterAsyncTaskFinish(String result) {
-                                            String res = result;
-                                            res = res.substring(res.lastIndexOf("Geoid height = ") + 15);
-                                            res = res.substring(0, res.indexOf("(meters)") - 1);
-                                            res = res.replace("\n", "");
-                                            double ellipsoidalHeight = Double.parseDouble(res);
-                                            double topographicHeight = elevationHeight - ellipsoidalHeight;
-                                            Toast.makeText(getApplicationContext(), Double.toString(topographicHeight), Toast.LENGTH_LONG).show();
-
-                                            int floorNumber = ((int) Math.ceil((altitude - topographicHeight) / floorHeight));
-                                            if (floorNumber > -3 && floorNumber < 5) {
-                                                String floorPlanImageName = floorNumber >= 0 ? ("engfloor" + floorNumber) : ("engfloorminus" + floorNumber);
-                                                Bitmap floorPlanImage = BitmapFactory.decodeResource(getResources(), getResources().getIdentifier(floorPlanImageName, "drawable", getPackageName()));
-
-                                                //FIND POSITION AT CORRESPONDED FLOOR
-                                                setWeightsAtFloor(floorNumber);
-                                                int refPointIDBestMatch = getBestMatchRefPointID(floorNumber);
-                                                PointF refPointPosBestMatch = getBestMatchRefPointPos(refPointIDBestMatch, floorNumber);
-                                                Toast.makeText(getApplicationContext(), refPointPosBestMatch.toString(), Toast.LENGTH_SHORT).show();
-
-                                                gyroscopeObserver.unregister();
-                                                recyclerView.setVisibility(View.INVISIBLE);
-                                                notInCampusAlertTextView.setVisibility(View.GONE);
-                                                floorPlanNavigationImageImageView.setVisibility(View.VISIBLE);
-                                                floorPlanNavigationImageImageView.setImageDrawable(new BitmapDrawable(getResources(), floorPlanImage));
-                                            }
-                                        }
-                                    });
-                                    GenericUrl geoidUrl = new GenericUrl("http://jules.unavco.org/Geoid/Geoid/");
-                                    retrieveResponseFromURL.execute(geoidUrl.toURL());
-                                } catch (Exception ex) {
-                                    gyroscopeObserver.register(getApplicationContext());
-                                    recyclerView.setVisibility(View.VISIBLE);
-                                    notInCampusAlertTextView.setText(R.string.gps_error_text);
-                                    notInCampusAlertTextView.setVisibility(View.VISIBLE);
-                                }
-                            }
-                        });
-                        GenericUrl elevationUrl = new GenericUrl("http://veloroutes.org/elevation/");
-                        retrieveResponseFromURL.execute(elevationUrl.toURL());
-                    } else {
-                        final RetrieveResponseFromURL retrieveResponseFromURL = new RetrieveResponseFromURL(convertedLatLng);
-                        retrieveResponseFromURL.setDelegate(new AfterAsyncTaskFinishInterface() {
-                            @Override
-                            public void afterAsyncTaskFinish(String result) {
-                                int floorNumber = ((int) Math.ceil((altitude - baseAltitude) / floorHeight));
-                                String floorPlanImageName = floorNumber >= 0 ? ("engfloor" + floorNumber) : ("engfloorminus" + floorNumber);
-                                Bitmap floorPlanImage = BitmapFactory.decodeResource(getResources(), getResources().getIdentifier(floorPlanImageName, "drawable", getPackageName()));
-
+                            int floorNumber = Globals.routerMacFloorNumberMatches.get(wifiManager.getConnectionInfo().getBSSID());
+                            if (floorNumber > -3 && floorNumber < 5) {
+                                gyroscopeObserver.unregister();
+                                recyclerView.setVisibility(View.GONE);
+                                notInCampusAlertTextView.setVisibility(View.GONE);
                                 floorPlanNavigationImageImageView.setVisibility(View.VISIBLE);
+
+                                String floorPlanImageName = floorNumber >= 2 ? ("engfloor" + floorNumber) : ("engfloorminus" + Math.abs(floorNumber));
+                                Bitmap floorPlanImage = BitmapFactory.decodeResource(getResources(), getResources().getIdentifier(floorPlanImageName, "drawable", getPackageName()));
+                                Matrix rotateMatrix = new Matrix();
+                                rotateMatrix.postRotate(90.0f);
+                                floorPlanImage = Bitmap.createBitmap(floorPlanImage, 0, 0, floorPlanImage.getWidth(), floorPlanImage.getHeight(), rotateMatrix, true);
                                 floorPlanNavigationImageImageView.setImageDrawable(new BitmapDrawable(getResources(), floorPlanImage));
+                                floorPlanNavigationImageImageView.setZoom(1.5f);
+                                floorPlanSelectorSpinner.setSelection(floorNumber + 2);
 
                                 //FIND POSITION AT CORRESPONDED FLOOR
                                 setWeightsAtFloor(floorNumber);
                                 int refPointIDBestMatch = getBestMatchRefPointID(floorNumber);
                                 PointF refPointPosBestMatch = getBestMatchRefPointPos(refPointIDBestMatch, floorNumber);
                                 Toast.makeText(getApplicationContext(), refPointPosBestMatch.toString(), Toast.LENGTH_SHORT).show();
+
+                                if (refPointPosBestMatch.x != -1 && refPointPosBestMatch.y != -1) {
+                                    refreshButtonNavigation.setBackground(getResources().getDrawable(R.drawable.ic_sync_black));
+                                    drawerButtonNavigation.setBackground(getResources().getDrawable(R.drawable.drawer_black));
+                                }
                             }
-                        });
-                        GenericUrl geoidUrl = new GenericUrl("http://jules.unavco.org/Geoid/Geoid");
-                        retrieveResponseFromURL.execute(geoidUrl.toURL());
+                            else{
+                                notInCampusAlertTextView.setText(R.string.location_notfound_text);
+                                notInCampusAlertTextView.setVisibility(View.VISIBLE);
+                            }
+                        } else {
+                            gyroscopeObserver.register(NavigationActivity.this);
+                            recyclerView.setVisibility(View.VISIBLE);
+                            floorPlanNavigationImageImageView.setVisibility(View.GONE);
+                            notInCampusAlertTextView.setText(R.string.user_is_not_in_department_text);
+                            notInCampusAlertTextView.setVisibility(View.VISIBLE);
+                            Toast.makeText(getApplicationContext(), "You are not in any department", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                    else if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                        gyroscopeObserver.register(NavigationActivity.this);
+                        recyclerView.setVisibility(View.VISIBLE);
+                        floorPlanNavigationImageImageView.setVisibility(View.GONE);
+                        notInCampusAlertTextView.setText(R.string.user_is_not_in_university_text);
+                        notInCampusAlertTextView.setVisibility(View.VISIBLE);
+                        Toast.makeText(getApplicationContext(), "You are not in Atılım University Campus", Toast.LENGTH_SHORT).show();
+                    }
+                    else{
+                        gyroscopeObserver.register(NavigationActivity.this);
+                        recyclerView.setVisibility(View.VISIBLE);
+                        floorPlanNavigationImageImageView.setVisibility(View.GONE);
+                        notInCampusAlertTextView.setText(R.string.gps_not_active_alert);
+                        notInCampusAlertTextView.setVisibility(View.VISIBLE);
                     }
                 }
-                else if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-                    gyroscopeObserver.register(NavigationActivity.this);
-                    recyclerView.setVisibility(View.VISIBLE);
-                    floorPlanNavigationImageImageView.setVisibility(View.GONE);
-                    notInCampusAlertTextView.setText(R.string.user_is_not_in_university_text);
-                    notInCampusAlertTextView.setVisibility(View.VISIBLE);
-                    Toast.makeText(getApplicationContext(), "You are not in any department", Toast.LENGTH_SHORT).show();
-                }
-            } else if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+            } else {
                 gyroscopeObserver.register(NavigationActivity.this);
                 recyclerView.setVisibility(View.VISIBLE);
                 floorPlanNavigationImageImageView.setVisibility(View.GONE);
-                notInCampusAlertTextView.setText(R.string.user_is_not_in_university_text);
+                notInCampusAlertTextView.setText(R.string.wifi_not_active_alert);
                 notInCampusAlertTextView.setVisibility(View.VISIBLE);
-                Toast.makeText(getApplicationContext(), "You are not in Atılım University Campus", Toast.LENGTH_SHORT).show();
             }
         }
     });
 
     @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        Bitmap oldImage = ((BitmapDrawable) floorPlanNavigationImageImageView.getDrawable()).getBitmap();
+        Matrix rotateMatrix = new Matrix();
+
+        if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE && oldImage.getHeight() > oldImage.getWidth()) {
+            rotateMatrix.postRotate(-90.0f);
+            oldImage = Bitmap.createBitmap(oldImage, 0, 0, oldImage.getWidth(), oldImage.getHeight(), rotateMatrix, true);
+            floorPlanNavigationImageImageView.setImageDrawable(new BitmapDrawable(getResources(), oldImage));
+        } else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT && oldImage.getWidth() > oldImage.getHeight()) {
+            rotateMatrix.postRotate(90.0f);
+            oldImage = Bitmap.createBitmap(oldImage, 0, 0, oldImage.getWidth(), oldImage.getHeight(), rotateMatrix, true);
+            floorPlanNavigationImageImageView.setImageDrawable(new BitmapDrawable(getResources(), oldImage));
+        }
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.app_bar_navigation);
+
+        roundCorners();
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
@@ -286,6 +288,15 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
         weightsFloor2 = new Integer[100];
         weightsFloor3 = new Integer[100];
         weightsFloor4 = new Integer[100];
+        for (int i = 0; i < 100; i++) {
+            weightsFloor_2[i] = 0;
+            weightsFloor_1[i] = 0;
+            weightsFloor0[i] = 0;
+            weightsFloor1[i] = 0;
+            weightsFloor2[i] = 0;
+            weightsFloor3[i] = 0;
+            weightsFloor4[i] = 0;
+        }
         weightsFloor = new SparseArray<>();
         weightsFloor.put(-2, weightsFloor_2);
         weightsFloor.put(-1, weightsFloor_1);
@@ -301,7 +312,10 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
 
         buildGoogleApiClient();
 
+        isLocationFound = false;
+
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 
         IntentFilter inIntentFilter = new IntentFilter("TURN_ON_GPS_BY_SWITCH");
         LocalBroadcastManager.getInstance(this).registerReceiver(receiverMaps, inIntentFilter);
@@ -322,13 +336,12 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
         atilimOverview = BitmapFactory.decodeResource(getResources(), R.drawable.atilim_overview);
 
         if (!Globals.isUserInUniversityArea) {
-            Bitmap atilimOverviewOutput;
             if (atilimOverview.getHeight() >= atilimOverview.getWidth()) {
                 atilimOverviewOutput = Bitmap.createBitmap(atilimOverview, 0, atilimOverview.getHeight() / 2 - atilimOverview.getWidth() / 2, atilimOverview.getWidth(), atilimOverview.getWidth());
             } else {
                 atilimOverviewOutput = Bitmap.createBitmap(atilimOverview, atilimOverview.getWidth() / 2 - atilimOverview.getHeight() / 2, 0, atilimOverview.getHeight(), atilimOverview.getHeight());
             }
-            //getWindow().getDecorView().setBackground(new BitmapDrawable(getResources(), atilimOverviewOutput));
+            getWindow().getDecorView().setBackground(new BitmapDrawable(getResources(), atilimOverviewOutput));
         }
 
         notInCampusAlertTextView = (TextView) findViewById(R.id.notInCampusAlertTextView);
@@ -337,11 +350,19 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
         if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
             notInCampusAlertTextView.setText(R.string.gps_not_active_alert);
             notInCampusAlertTextView.setVisibility(View.VISIBLE);
+            if (!wifiManager.isWifiEnabled()) {
+                notInCampusAlertTextView.setText(R.string.gps_wifi_not_active_alert);
+                notInCampusAlertTextView.setVisibility(View.VISIBLE);
+            }
+        } else if (!wifiManager.isWifiEnabled()) {
+            notInCampusAlertTextView.setText(R.string.wifi_not_active_alert);
+            notInCampusAlertTextView.setVisibility(View.VISIBLE);
         }
 
         floorPlanNavigationImageImageView = (TouchImageView) findViewById(R.id.floorPlanImageNavigation);
+        floorPlanNavigationImageImageView.setMinZoom(1.5f);
 
-        ImageButton refreshButtonNavigation = (ImageButton) findViewById(R.id.refreshButtonNavigation);
+        refreshButtonNavigation = (ImageButton) findViewById(R.id.refreshButtonNavigation);
         refreshButtonNavigation.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -363,7 +384,6 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
         drawerLayout.addDrawerListener(new DrawerLayout.DrawerListener() {
             @Override
             public void onDrawerSlide(View drawerView, float slideOffset) {
-                Log.i("SlideOffset", Float.toString(slideOffset));
                 drawerButtonNavigation.setRotation(slideOffset * 135 * -1);
             }
 
@@ -396,8 +416,88 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
             }
         });
 
+        floorPlanSelectorSpinner = (CustomSpinner) findViewById(R.id.floorPlanSelectorSpinner);
+        ArrayAdapter<CharSequence> aa = ArrayAdapter.createFromResource(this, R.array.floor_numbers_array, R.layout.simple_list_item_customized_2);
+        floorPlanSelectorSpinner.setAdapter(aa);
+        floorPlanSelectorSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if(floorPlanNavigationImageImageView.getVisibility() == View.VISIBLE){
+                    String floorPlanImageName = position >= 2 ? ("engfloor" + position) : ("engfloorminus" + Math.abs(position - 2));
+                    Bitmap floorPlanImage = BitmapFactory.decodeResource(getResources(), getResources().getIdentifier(floorPlanImageName, "drawable", getPackageName()));
+                    Matrix rotateMatrix = new Matrix();
+                    rotateMatrix.postRotate(90.0f);
+                    floorPlanImage = Bitmap.createBitmap(floorPlanImage, 0, 0, floorPlanImage.getWidth(), floorPlanImage.getHeight(), rotateMatrix, true);
+                    floorPlanNavigationImageImageView.setImageDrawable(new BitmapDrawable(getResources(), floorPlanImage));
+                    floorPlanNavigationImageImageView.setZoom(1.5f);
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
+
         contentView = findViewById(R.id.recyclerViewPanorama).getRootView();
         contentDecorView = getWindow().getDecorView();
+    }
+
+    private void roundCorners(){
+        CustomThread customThread = new CustomThread(new ThreadRunInterface() {
+            @Override
+            public void whenThreadRun() {
+                Display display = getWindowManager().getDefaultDisplay();
+                Point size = new Point();
+                display.getSize(size);
+                final ImageView roundCornersImageView = (ImageView) findViewById(R.id.roundCornersImageViewNavigation);
+                Drawable drawable = getResources().getDrawable(R.drawable.layout_rounded_corner);
+                Canvas canvas = new Canvas();
+                final Bitmap roundCornersBitmap = Bitmap.createBitmap(size.x, size.y, Bitmap.Config.ARGB_8888);
+                canvas.setBitmap(roundCornersBitmap);
+                drawable.setBounds(0, 0, size.x, size.y);
+                drawable.draw(canvas);
+                int[] roundCornersBitmapMatrix = new int[roundCornersBitmap.getHeight() * roundCornersBitmap.getWidth()];
+                roundCornersBitmap.getPixels(roundCornersBitmapMatrix, 0, roundCornersBitmap.getWidth(), 0, 0, roundCornersBitmap.getWidth(), roundCornersBitmap.getHeight());
+                boolean cont = true;
+                for (int r = 0; r < roundCornersBitmapMatrix.length; r++){
+                    if(roundCornersBitmapMatrix[r] == Color.argb(0, 0, 0, 0) && cont){
+                        roundCornersBitmapMatrix[r] = Color.argb(255, 0, 0, 0);
+                    }
+                    else{
+                        cont = false;
+                    }
+
+                    if(r % size.x == 0 || r % size.x == size.x - 1){
+                        cont = true;
+                    }
+                }
+                for (int r = roundCornersBitmapMatrix.length - 1; r > 0; r--){
+                    if(roundCornersBitmapMatrix[r] == Color.argb(0, 0, 0, 0) && cont){
+                        roundCornersBitmapMatrix[r] = Color.argb(255, 0, 0, 0);
+                    }
+                    else{
+                        cont = false;
+                    }
+
+                    if(r % size.x == 0 || r % size.x == size.x - 1){
+                        cont = true;
+                    }
+                }
+
+                final int[] finalRoundCornersBitmapMatrix = roundCornersBitmapMatrix;
+                Handler mainHandler = new Handler(getApplicationContext().getMainLooper());
+                Runnable runnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        roundCornersBitmap.setPixels(finalRoundCornersBitmapMatrix, 0, roundCornersBitmap.getWidth(), 0, 0, roundCornersBitmap.getWidth(), roundCornersBitmap.getHeight());
+                        roundCornersImageView.setImageBitmap(roundCornersBitmap);
+                    }
+                };
+                mainHandler.post(runnable);
+           }
+        });
+        customThread.start();
     }
 
     class PanoramaAdapter extends RecyclerView.Adapter<PanoramaAdapter.PanoramaViewHolder> {
@@ -471,12 +571,11 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
                 if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
                     Toast.makeText(getApplicationContext(), "GPS isn't active. Please activate GPS.", Toast.LENGTH_SHORT).show();
                 } else {
-                    WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
                     List<ScanResult> scanResults = wifiManager.getScanResults();
 
                     if (scanResults != null && scanResults.size() > 0) {
                         while (iterationCount > 0) {
-                            referencePointNumber = Integer.parseInt(allFilesInFloorFolder[iterationCount].getName().replace("referencePoint", ""));
+                            referencePointNumber = Integer.parseInt(allFilesInFloorFolder[iterationCount].getName().replace("referencePoint", "").replace(".json", ""));
                             iterationCountAP = getArraySizeOfAPsJSON(referencePointNumber, txtDir);
                             while (iterationCountCountAP < iterationCountAP) {
                                 containsAP = false;
@@ -520,10 +619,8 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
             }
         } catch (Exception ex) {
             ex.printStackTrace();
-            gyroscopeObserver.register(getApplicationContext());
-            recyclerView.setVisibility(View.VISIBLE);
-            floorPlanNavigationImageImageView.setVisibility(View.GONE);
-            notInCampusAlertTextView.setText(R.string.gps_error_text);
+
+            notInCampusAlertTextView.setText(R.string.location_notfound_text);
             notInCampusAlertTextView.setVisibility(View.VISIBLE);
         }
     }
@@ -560,10 +657,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
         } catch (Exception ex) {
             ex.printStackTrace();
 
-            gyroscopeObserver.register(getApplicationContext());
-            recyclerView.setVisibility(View.VISIBLE);
-            floorPlanNavigationImageImageView.setVisibility(View.GONE);
-            notInCampusAlertTextView.setText(R.string.gps_error_text);
+            notInCampusAlertTextView.setText(R.string.location_notfound_text);
             notInCampusAlertTextView.setVisibility(View.VISIBLE);
 
             return new PointF(-1, -1);
@@ -572,8 +666,8 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
 
     private int getBestMatchRefPointID(int floorNumber) {
         int maxWeight = Integer.MAX_VALUE;
-        int refPointID = 0;
-        int refPointIDIndex = 0;
+        int refPointID = 1;
+        int refPointIDIndex = 1;
 
         switch (floorNumber) {
             case -2:
@@ -675,10 +769,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
         } catch (Exception ex) {
             ex.printStackTrace();
 
-            gyroscopeObserver.register(getApplicationContext());
-            recyclerView.setVisibility(View.VISIBLE);
-            floorPlanNavigationImageImageView.setVisibility(View.GONE);
-            notInCampusAlertTextView.setText(R.string.gps_error_text);
+            notInCampusAlertTextView.setText(R.string.location_notfound_text);
             notInCampusAlertTextView.setVisibility(View.VISIBLE);
 
             return 0;
@@ -701,7 +792,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
 
             try {
                 fileJSONObject = new JSONObject(stringBuilder.toString());
-                Toast.makeText(getApplicationContext(), fileJSONObject.getJSONObject("ReferencePoint" + referencePointID).getJSONArray("AccessPoints").getJSONObject(arrayIndex).getString(key), Toast.LENGTH_SHORT).show();
+                //Toast.makeText(getApplicationContext(), fileJSONObject.getJSONObject("ReferencePoint" + referencePointID).getJSONArray("AccessPoints").getJSONObject(arrayIndex).getString(key), Toast.LENGTH_SHORT).show();
             } catch (JSONException ex) {
                 ex.printStackTrace();
             }
@@ -842,7 +933,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
 
     @Override
     public void onLocationChanged(Location location) {
-
+        isLocationFound = false;
     }
 
     @Override
@@ -855,8 +946,6 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
 
         if (!mGoogleApiClient.isConnected())
             mGoogleApiClient.connect();
-
-
     }
 
     @Override
@@ -872,7 +961,8 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
 
         initializeCheckLocationThread();
         initializeCheckGPSStatusThread();
-        startCheckGPSStatusThread();
+        initializeCheckWifiStatusThread();
+        startCheckWifiStatusThread();
         dateTimeMillis = System.currentTimeMillis();
         gyroscopeObserver.register(this);
     }
@@ -910,6 +1000,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
                 customThreadCheckGPSState.stopRunning(false);
 
             LocalBroadcastManager.getInstance(this).unregisterReceiver(receiverMaps);
+            atilimOverviewOutput.recycle();
         }
     }
 
@@ -919,12 +1010,15 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
             public void whenThreadRun() {
                 while (customThreadCheckGPSState.getFlag()) {
                     isGPSOn = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-                    if ((isGPSOn && isGPSOn != isLastTimeGPSOn) || (System.currentTimeMillis() - dateTimeMillis >= (60 * 1000))) {
+                    if ((isGPSOn && isGPSOn != isLastTimeGPSOn) || ((System.currentTimeMillis() - dateTimeMillis >= (5 * 1000)) && isGPSOn && !isLocationFound) || (isGPSOn && !isLocationFound)) {
+                        dateTimeMillis = System.currentTimeMillis();
+
                         if (customThreadCheckLocation != null) {
                             customThreadCheckLocation.stopRunning(false);
                         }
 
                         if (customThreadCheckLocation != null && !customThreadCheckLocation.isAlive()) {
+                            isLocationFound = true;
                             initializeCheckLocationThread();
                             startCheckLocationThread();
                         }
@@ -946,7 +1040,6 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
                         });
                     }
 
-                    dateTimeMillis = System.currentTimeMillis();
                     isLastTimeGPSOn = isGPSOn;
                 }
             }
@@ -955,6 +1048,49 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
 
     private void startCheckGPSStatusThread() {
         customThreadCheckGPSState.start();
+    }
+
+    private void initializeCheckWifiStatusThread() {
+        customThreadCheckWifiState = new CustomThread(new ThreadRunInterface() {
+            @Override
+            public void whenThreadRun() {
+                while (customThreadCheckWifiState.getFlag()) {
+                    isWifiOn = wifiManager.isWifiEnabled();
+                    if ((isWifiOn && isWifiOn != isLastTimeWifiOn)) {
+                        if (customThreadCheckGPSState != null) {
+                            customThreadCheckGPSState.stopRunning(false);
+                        }
+
+                        if (customThreadCheckGPSState != null && !customThreadCheckGPSState.isAlive()) {
+                            initializeCheckGPSStatusThread();
+                            startCheckGPSStatusThread();
+                        }
+
+                        modifyMapAgain = true;
+                    } else if (!isGPSOn && modifyMapAgain) {
+                        modifyMapAgain = false;
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                                    gyroscopeObserver.register(NavigationActivity.this);
+                                    recyclerView.setVisibility(View.VISIBLE);
+                                    floorPlanNavigationImageImageView.setVisibility(View.GONE);
+                                    notInCampusAlertTextView.setText(R.string.wifi_not_active_alert);
+                                    notInCampusAlertTextView.setVisibility(View.VISIBLE);
+                                }
+                            }
+                        });
+                    }
+
+                    isLastTimeWifiOn = isWifiOn;
+                }
+            }
+        });
+    }
+
+    private void startCheckWifiStatusThread() {
+        customThreadCheckWifiState.start();
     }
 
     private void initializeCheckLocationThread() {
@@ -971,6 +1107,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
                         mLocationOfUser = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
                     }
                 }
+                while(!checkAllConditions() && customThreadCheckLocation.getFlag());
                 if (checkAllConditions()) {
                     customThreadCheckLocation.stopRunning(false);
                     startLocationIntentService();

@@ -7,6 +7,12 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Point;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.location.LocationManager;
 import android.net.Uri;
 import android.os.Bundle;
@@ -24,13 +30,17 @@ import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.SwitchCompat;
 import android.text.InputType;
+import android.view.Display;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.Toast;
 
+import com.atilim.uni.unipath.cons.Globals;
 import com.atilim.uni.unipath.customs.CustomLogcatTextView;
 import com.atilim.uni.unipath.customs.CustomThread;
 import com.atilim.uni.unipath.interfaces.ThreadRunInterface;
@@ -66,10 +76,6 @@ public class BaseActivity extends Activity implements NavigationView.OnNavigatio
         getLayoutInflater().inflate(layoutResID, frameLayoutMain, true);
 
         super.setContentView(drawerLayout);
-
-        logcatTextView = new CustomLogcatTextView(getApplicationContext());
-        logcatTextView.setVerticalScrollBarEnabled(true);
-        logcatTextView.refreshLogcat();
 
         navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
@@ -139,6 +145,61 @@ public class BaseActivity extends Activity implements NavigationView.OnNavigatio
         (navigationView.getMenu().findItem(R.id.nav_manage)).setIcon(new IconDrawable(this, FontAwesomeIcons.fa_cogs).colorRes(R.color.colorAccent).actionBarSize());
         (navigationView.getMenu().findItem(R.id.nav_send)).setIcon(new IconDrawable(this, FontAwesomeIcons.fa_paper_plane_o).colorRes(R.color.colorAccent).actionBarSize());
         (navigationView.getMenu().findItem(R.id.nav_exit)).setIcon(new IconDrawable(this, FontAwesomeIcons.fa_sign_out).colorRes(R.color.colorAccent).actionBarSize());
+
+        navigationView.post(new Runnable() {
+            @Override
+            public void run() {
+                roundCorner();
+            }
+        });
+    }
+
+    private void roundCorner(){
+        CustomThread customThread = new CustomThread(new ThreadRunInterface() {
+            @Override
+            public void whenThreadRun() {
+                final View navigationHeaderView = navigationView.getHeaderView(0);
+                final RelativeLayout navigationHeaderRelativeLayout = (RelativeLayout) navigationHeaderView.findViewById(R.id.navigationHeaderRelativeLayout);
+
+                final ImageView roundCornersImageViewDrawer = (ImageView) navigationHeaderRelativeLayout.findViewById(R.id.roundCornersImageViewDrawer);
+
+                Point size = new Point(roundCornersImageViewDrawer.getWidth(), roundCornersImageViewDrawer.getHeight());
+
+                Drawable drawable = getResources().getDrawable(R.drawable.drawer_layout_rounded_corner);
+                Canvas canvas = new Canvas();
+                final Bitmap roundCornersBitmap = Bitmap.createBitmap(size.x, size.y, Bitmap.Config.ARGB_8888);
+                canvas.setBitmap(roundCornersBitmap);
+                drawable.setBounds(0, 0, size.x, size.y);
+                drawable.draw(canvas);
+                int[] roundCornersBitmapMatrix = new int[roundCornersBitmap.getHeight() * roundCornersBitmap.getWidth()];
+                roundCornersBitmap.getPixels(roundCornersBitmapMatrix, 0, roundCornersBitmap.getWidth(), 0, 0, roundCornersBitmap.getWidth(), roundCornersBitmap.getHeight());
+                boolean cont = true;
+                for (int r = 0; r < roundCornersBitmapMatrix.length; r++){
+                    if(roundCornersBitmapMatrix[r] == Color.argb(0, 0, 0, 0) && cont){
+                        roundCornersBitmapMatrix[r] = Color.argb(255, 0, 0, 0);
+                    }
+                    else{
+                        cont = false;
+                    }
+
+                    if(r % size.x == 0 || r % size.x == size.x - 1){
+                        cont = true;
+                    }
+                }
+
+                final int[] finalRoundCornersBitmapMatrix = roundCornersBitmapMatrix;
+                Handler mainHandler = new Handler(getApplicationContext().getMainLooper());
+                Runnable runnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        roundCornersBitmap.setPixels(finalRoundCornersBitmapMatrix, 0, roundCornersBitmap.getWidth(), 0, 0, roundCornersBitmap.getWidth(), roundCornersBitmap.getHeight());
+                        roundCornersImageViewDrawer.setImageBitmap( roundCornersBitmap);
+                    }
+                };
+                mainHandler.post(runnable);
+            }
+        });
+        customThread.start();
     }
 
     @Override
@@ -212,6 +273,10 @@ public class BaseActivity extends Activity implements NavigationView.OnNavigatio
                 .with(new MaterialModule());
 
         mHandler = new Handler();
+
+        logcatTextView = new CustomLogcatTextView(getApplicationContext());
+        logcatTextView.setVerticalScrollBarEnabled(true);
+        logcatTextView.getTextView().setText(Globals.customLogcatTextViewLog);
     }
 
     @SuppressWarnings("StatementWithEmptyBody")
@@ -232,17 +297,19 @@ public class BaseActivity extends Activity implements NavigationView.OnNavigatio
 
         }
         else if (id == R.id.nav_maps) {
+            logcatTextView.refreshLogcat();
+            Globals.customLogcatTextViewLog = logcatTextView.getTextView().getText();
+
             Intent mapsIntent = new Intent(this, MapsActivity.class);
             mapsIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
             startActivity(mapsIntent);
             finish();
 
         } else if (id == R.id.nav_manage) {
+            logcatTextView.refreshLogcat();
+            Globals.customLogcatTextViewLog = logcatTextView.getTextView().getText();
+
             Intent settingsIntent = new Intent(this, SettingsActivity.class);
-            SharedPreferences sharedPreferences = getApplicationContext().getSharedPreferences("LOGCAT_TEXTVIEW_TEXT", Context.MODE_PRIVATE);
-            SharedPreferences.Editor editor = sharedPreferences.edit();
-            editor.putString("LOGCAT_TEXTVIEW_TEXT", logcatTextView.getTextView().getText().toString());
-            editor.apply();
             startActivity(settingsIntent);
 
         } else if (id == R.id.nav_send) {

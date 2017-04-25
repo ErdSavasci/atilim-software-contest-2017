@@ -36,13 +36,15 @@
             android:name=".NavigationActivity"
             android:label="@string/app_name"
             android:launchMode="singleTask"
-            android:theme="@style/AppTheme.AtilimTheme">
+            android:theme="@style/AppTheme.AtilimTheme"
+            android:configChanges="orientation|screenSize" >
 
         </activity>
         <activity
             android:name=".SettingsActivity"
             android:label="@string/title_activity_settings"
-            android:theme="@style/AppTheme.ActionBar" />
+            android:theme="@style/AppTheme.AtilimSettings"
+            android:configChanges="orientation|screenSize"/>
         <!--
              The API key for Google Maps-based APIs is defined as a string resource.
              (See the file "res/values/google_maps_api.xml").
@@ -59,7 +61,8 @@
             android:name=".MapsActivity"
             android:label="@string/title_activity_maps"
             android:launchMode="singleTask"
-            android:theme="@style/AppTheme.AtilimTheme" />
+            android:theme="@style/AppTheme.AtilimTheme"
+            android:configChanges="orientation|screenSize" />
 
         <service
             android:name=".services.FetchAddressIntentService"
@@ -68,7 +71,8 @@
         <activity
             android:name=".SplashActivity"
             android:launchMode="singleTop"
-            android:theme="@style/AppTheme.AtilimTheme.Splash">
+            android:theme="@style/AppTheme.AtilimTheme.Splash"
+            android:configChanges="orientation|screenSize" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -78,7 +82,8 @@
 
         <activity android:name=".CalibrateActivity"
             android:launchMode="singleTask"
-            android:theme="@style/AppTheme.AtilimTheme">
+            android:theme="@style/AppTheme.AtilimTheme"
+            android:configChanges="orientation|screenSize" >
 
         </activity>
     </application>

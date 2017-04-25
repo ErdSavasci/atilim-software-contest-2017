@@ -13,6 +13,15 @@
         tools:layout="@layout/dummy_maps_ss">
     </fragment>
 
+    <ImageView
+        android:id="@+id/roundCornersImageView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_alignParentTop="true"
+        android:src="@drawable/layout_rounded_corner"
+        android:scaleType="fitXY"
+        android:contentDescription="@string/imageview_content_description"/>
+
     <ImageButton
         android:id="@+id/drawerButton"
         android:layout_width="50dp"

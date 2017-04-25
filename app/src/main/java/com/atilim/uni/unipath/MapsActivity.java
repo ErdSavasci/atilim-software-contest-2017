@@ -7,7 +7,13 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.IntentSender;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Point;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.GradientDrawable;
 import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
@@ -24,18 +30,22 @@ import android.support.v4.content.ContextCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.widget.DrawerLayout;
 import android.util.Log;
+import android.view.Display;
 import android.view.Gravity;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.Spinner;
 import android.widget.Toast;
 
 import com.atilim.uni.unipath.cons.Constants;
 import com.atilim.uni.unipath.cons.Globals;
 import com.atilim.uni.unipath.customs.CustomThread;
+import com.atilim.uni.unipath.interfaces.DirectionsAPIServiceInterface;
+import com.atilim.uni.unipath.interfaces.DirectionsAPITrafficServiceInterface;
 import com.atilim.uni.unipath.interfaces.ReceiveResultInterface;
 import com.atilim.uni.unipath.interfaces.ThreadRunInterface;
 import com.atilim.uni.unipath.json.DirectionsResult;
@@ -81,6 +91,11 @@ import java.util.List;
 
 import io.nlopez.smartlocation.OnLocationUpdatedListener;
 import io.nlopez.smartlocation.SmartLocation;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 
 public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener {
     private GoogleMap mMap;
@@ -102,6 +117,10 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
     private int navToss = 0;
     private boolean modifyMapAgain = true;
     private ImageButton drawerButton;
+    private boolean isLocationFound;
+    private SupportMapFragment mapFragment;
+    private long dateTimeMillis = 0L;
+    private boolean printAddressOnce = true;
 
     private static final String LOCATION_ADDRESS_KEY = "LOCATION_ADDRESS";
     private static final String KEY_CAMERA_POSITION = "CAMERA_POSITION";
@@ -134,9 +153,11 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
             if (resultCode == Constants.SUCCESS_RESULT) {
                 isUserInUniversityArea = resultData.getBoolean(Constants.RESULT_AREA_DATA_KEY);
                 mAddressOutput = resultData.getString(Constants.RESULT_DATA_KEY);
-                if (!isUserInUniversityArea)
+                if (!isUserInUniversityArea && printAddressOnce) {
                     Toast.makeText(getApplicationContext(), mAddressOutput, Toast.LENGTH_SHORT).show();
-            } else {
+                    printAddressOnce = false;
+                }
+            } else if(printAddressOnce) {
                 Toast.makeText(getApplicationContext(), "Location cannot be found", Toast.LENGTH_SHORT).show();
             }
 
@@ -153,14 +174,17 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
         isMapReady = false;
         polylinesList = new ArrayList<>();
         setContentView(R.layout.activity_maps);
 
+        roundCorners();
+
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
-        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+        mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
@@ -192,11 +216,12 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
             checkingPermission = false;
         }
 
+        isLocationFound = false;
+
         final DrawerLayout drawerLayout = super.getDrawerLayout();
         drawerLayout.addDrawerListener(new DrawerLayout.DrawerListener() {
             @Override
             public void onDrawerSlide(View drawerView, float slideOffset) {
-                Log.i("SlideOffset", Float.toString(slideOffset));
                 drawerButton.setRotation(slideOffset * 135 * -1);
             }
 
@@ -252,12 +277,16 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
                 if (mLocationOfUser != null) {
                     if (position == 0) { //Shortest
                         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(mLocationOfUser.getLatitude(), mLocationOfUser.getLongitude()), DEFAULT_ZOOM));
-                        LocationAsyncTask locationAsyncTask = new LocationAsyncTask();
-                        locationAsyncTask.execute(new LatLng(mLocationOfUser.getLatitude(), mLocationOfUser.getLongitude()));
+                        //LocationAsyncTask locationAsyncTask = new LocationAsyncTask();
+                        //locationAsyncTask.execute(new LatLng(mLocationOfUser.getLatitude(), mLocationOfUser.getLongitude()));
+
+                        planRouteOrPutMarker();
                     } else { //Fastest
                         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(mLocationOfUser.getLatitude(), mLocationOfUser.getLongitude()), DEFAULT_ZOOM));
-                        LocationAsyncTask locationAsyncTask = new LocationAsyncTask();
-                        locationAsyncTask.execute(new LatLng(mLocationOfUser.getLatitude(), mLocationOfUser.getLongitude()));
+                        //LocationAsyncTask locationAsyncTask = new LocationAsyncTask();
+                        //locationAsyncTask.execute(new LatLng(mLocationOfUser.getLatitude(), mLocationOfUser.getLongitude()));
+
+                        planRouteOrPutMarker();
                     }
                 }
             }
@@ -266,11 +295,71 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
             public void onNothingSelected(AdapterView<?> parent) {
                 if (mLocationOfUser != null) {
                     mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(mLocationOfUser.getLatitude(), mLocationOfUser.getLongitude()), DEFAULT_ZOOM));
-                    LocationAsyncTask locationAsyncTask = new LocationAsyncTask();
-                    locationAsyncTask.execute(new LatLng(mLocationOfUser.getLatitude(), mLocationOfUser.getLongitude()));
+                    //LocationAsyncTask locationAsyncTask = new LocationAsyncTask();
+                    //locationAsyncTask.execute(new LatLng(mLocationOfUser.getLatitude(), mLocationOfUser.getLongitude()));
+
+                    planRouteOrPutMarker();
                 }
             }
         });
+    }
+
+    private void roundCorners(){
+        CustomThread customThread = new CustomThread(new ThreadRunInterface() {
+            @Override
+            public void whenThreadRun() {
+                Display display = getWindowManager().getDefaultDisplay();
+                Point size = new Point();
+                display.getSize(size);
+
+                final ImageView roundCornersImageView = (ImageView) findViewById(R.id.roundCornersImageView);
+                Drawable drawable = getResources().getDrawable(R.drawable.layout_rounded_corner);
+                Canvas canvas = new Canvas();
+                final Bitmap roundCornersBitmap = Bitmap.createBitmap(size.x, size.y, Bitmap.Config.ARGB_8888);
+                canvas.setBitmap(roundCornersBitmap);
+                drawable.setBounds(0, 0, size.x, size.y);
+                drawable.draw(canvas);
+                int[] roundCornersBitmapMatrix = new int[roundCornersBitmap.getHeight() * roundCornersBitmap.getWidth()];
+                roundCornersBitmap.getPixels(roundCornersBitmapMatrix, 0, roundCornersBitmap.getWidth(), 0, 0, roundCornersBitmap.getWidth(), roundCornersBitmap.getHeight());
+                boolean cont = true;
+                for (int r = 0; r < roundCornersBitmapMatrix.length; r++){
+                    if(roundCornersBitmapMatrix[r] == Color.argb(0, 0, 0, 0) && cont){
+                        roundCornersBitmapMatrix[r] = Color.argb(255, 0, 0, 0);
+                    }
+                    else{
+                        cont = false;
+                    }
+
+                    if(r % size.x == 0 || r % size.x == size.x - 1){
+                        cont = true;
+                    }
+                }
+                for (int r = roundCornersBitmapMatrix.length - 1; r > 0; r--){
+                    if(roundCornersBitmapMatrix[r] == Color.argb(0, 0, 0, 0) && cont){
+                        roundCornersBitmapMatrix[r] = Color.argb(255, 0, 0, 0);
+                    }
+                    else{
+                        cont = false;
+                    }
+
+                    if(r % size.x == 0 || r % size.x == size.x - 1){
+                        cont = true;
+                    }
+                }
+
+                final int[] finalRoundCornersBitmapMatrix = roundCornersBitmapMatrix;
+                Handler mainHandler = new Handler(getApplicationContext().getMainLooper());
+                Runnable runnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        roundCornersBitmap.setPixels(finalRoundCornersBitmapMatrix, 0, roundCornersBitmap.getWidth(), 0, 0, roundCornersBitmap.getWidth(), roundCornersBitmap.getHeight());
+                        roundCornersImageView.setImageBitmap(roundCornersBitmap);
+                    }
+                };
+                mainHandler.post(runnable);
+            }
+        });
+        customThread.start();
     }
 
     public boolean isGPSActive() {
@@ -316,6 +405,8 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
         initializeCheckLocationThread();
         initializeCheckGPSStatusThread();
         startCheckGPSStatusThread();
+
+        dateTimeMillis = System.currentTimeMillis();
     }
 
     @Override
@@ -345,7 +436,9 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
             public void whenThreadRun() {
                 while (customThreadCheckGPSState.getFlag()) {
                     isGPSOn = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-                    if (isGPSOn && isGPSOn != isLastTimeGPSOn) {
+                    if ((isGPSOn && isGPSOn != isLastTimeGPSOn) || ((System.currentTimeMillis() - dateTimeMillis >= (5 * 1000)) && isGPSOn && !isLocationFound) || (isGPSOn && !isLocationFound)) {
+                        dateTimeMillis = System.currentTimeMillis();
+
                         if (customThreadCheckLocation != null) {
                             customThreadCheckLocation.stopRunning(false);
                         }
@@ -353,6 +446,7 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
                         if (customThreadCheckLocation != null && !customThreadCheckLocation.isAlive()) {
                             initializeCheckLocationThread();
                             startCheckLocationThread();
+                            isLocationFound = true;
                         }
 
                         modifyMapAgain = true;
@@ -369,6 +463,7 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
                             }
                         });
                     }
+
                     isLastTimeGPSOn = isGPSOn;
                 }
             }
@@ -393,6 +488,7 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
                         mLocationOfUser = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
                     }
                 }
+                while (!checkAllConditions() && customThreadCheckLocation.getFlag()) ;
                 if (checkAllConditions()) {
                     customThreadCheckLocation.stopRunning(false);
                     startLocationIntentService();
@@ -547,7 +643,7 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
 
     @Override
     public void onLocationChanged(Location location) {
-
+        isLocationFound = false;
     }
 
     /**
@@ -576,6 +672,7 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
             mLocationOfUser = null;
         }
 
+        getWindow().getDecorView().setBackgroundColor(Color.parseColor("#000000"));
         planRouteOrPutMarker();
     }
 
@@ -583,8 +680,82 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
         try {
             if (mLocationOfUser != null) {
                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(mLocationOfUser.getLatitude(), mLocationOfUser.getLongitude()), DEFAULT_ZOOM));
-                LocationAsyncTask locationAsyncTask = new LocationAsyncTask();
-                locationAsyncTask.execute(new LatLng(mLocationOfUser.getLatitude(), mLocationOfUser.getLongitude()));
+                //LocationAsyncTask locationAsyncTask = new LocationAsyncTask();
+                //locationAsyncTask.execute(new LatLng(mLocationOfUser.getLatitude(), mLocationOfUser.getLongitude()));
+
+                Retrofit retrofit = new Retrofit.Builder().baseUrl("https://maps.googleapis.com/").addConverterFactory(GsonConverterFactory.create()).build();
+                Call<DirectionsResult> directionsResultCall;
+                DirectionsAPITrafficServiceInterface directionsAPITrafficServiceInterface;
+                DirectionsAPIServiceInterface directionsAPIServiceInterface;
+                if (routeOption == 0) {
+                    directionsAPIServiceInterface = retrofit.create(DirectionsAPIServiceInterface.class);
+                    directionsResultCall = directionsAPIServiceInterface.getDirections(Double.toString(mLocationOfUser.getLatitude()) + "," + Double.toString(mLocationOfUser.getLongitude()),
+                            "39.815929,32.723868",
+                            getResources().getString(R.string.google_maps_not_restricted_key),
+                            "true");
+                } else {
+                    directionsAPITrafficServiceInterface = retrofit.create(DirectionsAPITrafficServiceInterface.class);
+                    directionsResultCall = directionsAPITrafficServiceInterface.getDirections(Double.toString(mLocationOfUser.getLatitude()) + "," + Double.toString(mLocationOfUser.getLongitude()),
+                            "39.815929,32.723868",
+                            getResources().getString(R.string.google_maps_not_restricted_key),
+                            "true");
+                }
+
+                directionsResultCall.enqueue(new Callback<DirectionsResult>() {
+                    @Override
+                    public void onResponse(Call<DirectionsResult> call, Response<DirectionsResult> response) {
+                        try{
+                            DirectionsResult directionsResult = response.body();
+                            long shortest = Long.MAX_VALUE, fastest = Long.MAX_VALUE;
+                            int shortestIndex = -1, fastestIndex = -1;
+
+                            for (Route r : directionsResult.routes) {
+                                if (r.legs.get(0).distance.value < shortest) {
+                                    shortest = r.legs.get(0).distance.value;
+                                    shortestIndex++;
+                                }
+                                if (r.legs.get(0).duration.value < fastest) {
+                                    fastest = r.legs.get(0).duration.value;
+                                    fastestIndex++;
+                                }
+                            }
+
+                            String encodedPoints = "";
+                            if (directionsResult.routes.size() > 0) {
+                                if (routeOption == 0) { //Shortest
+                                    encodedPoints = directionsResult.routes.get(shortestIndex).overviewPolyLine.points;
+                                } else { //Fastest
+                                    encodedPoints = directionsResult.routes.get(fastestIndex).overviewPolyLine.points;
+                                }
+                            }
+
+                            List<LatLng> latLngs = PolyUtil.decode(encodedPoints);
+                            if (polylinesList.size() > 0) {
+                                polylinesList.get(0).remove();
+                                polylinesList.clear();
+                            }
+
+                            PolylineOptions polylineOptions = new PolylineOptions();
+                            polylineOptions.width(7);
+                            polylineOptions.color(Color.BLUE);
+                            for (LatLng latlng : latLngs) {
+                                polylineOptions.add(latlng);
+                            }
+
+                            polylinesList.add(mMap.addPolyline(polylineOptions));
+                        }
+                        catch(Exception ex){
+                            ex.printStackTrace();
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<DirectionsResult> call, Throwable t) {
+
+                    }
+                });
+
+                Log.i("ROUTE_PLAN: ", "STARTED");
             } else if (mCameraPosition != null) {
                 mMap.moveCamera(CameraUpdateFactory.newCameraPosition(mCameraPosition));
             } else {

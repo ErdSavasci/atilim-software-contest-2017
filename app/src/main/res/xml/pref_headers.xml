@@ -2,6 +2,9 @@
 
     <!-- These settings headers are only used on tablets. -->
 
+    <header android:title="@string/title_activity_settings_uppercase"
+        />
+
     <header
         android:id="@+id/generalHeader"
         android:fragment="com.atilim.uni.unipath.SettingsActivity$GeneralPreferenceFragment"

@@ -53,7 +53,7 @@ public class FetchAddressIntentService extends IntentService {
                 addresses = geocoder.getFromLocation(mLocation.getLatitude(), mLocation.getLongitude(), 1);
                 if(mLocation.getLatitude() >= 39.810745 &&
                         mLocation.getLatitude() <= 39.818478 &&
-                        mLocation.getLongitude() >= 39.721043 &&
+                        mLocation.getLongitude() >= 32.721043 &&
                         mLocation.getLongitude() <= 32.729119){
                     isUserInUniversityArea = true;
                     Globals.isUserInUniversityArea = true;

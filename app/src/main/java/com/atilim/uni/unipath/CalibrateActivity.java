@@ -177,7 +177,7 @@ public class CalibrateActivity extends AppCompatActivity implements GoogleApiCli
         });
 
         final CustomSpinner floorPlanSelectorSpinner = (CustomSpinner) findViewById(R.id.floorPlanSelectorSpinner);
-        ArrayAdapter<CharSequence> aa = ArrayAdapter.createFromResource(this, R.array.floor_numbers_array, R.layout.simple_list_item_customized);
+        ArrayAdapter<CharSequence> aa = ArrayAdapter.createFromResource(this, R.array.floor_numbers_array, R.layout.simple_list_item_customized_2);
         floorPlanSelectorSpinner.setAdapter(aa);
         floorPlanSelectorSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override

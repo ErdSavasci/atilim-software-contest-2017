@@ -77,8 +77,6 @@
     <com.atilim.uni.unipath.customs.CustomSpinner
         android:id="@+id/floorPlanSelectorSpinner"
         android:layout_width="wrap_content"
-        android:background="#1E88E5"
-        android:popupBackground="#1E88E5"
         android:layout_height="wrap_content"
         android:layout_below="@+id/floorPlanCalibrateImageView"
         android:layout_above="@+id/dwScrollingValuePicker"

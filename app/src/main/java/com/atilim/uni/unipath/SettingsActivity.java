@@ -7,6 +7,13 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Point;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
@@ -27,17 +34,26 @@ import android.text.Html;
 import android.text.TextUtils;
 import android.text.method.ScrollingMovementMethod;
 import android.util.Log;
+import android.view.Display;
 import android.view.Gravity;
 import android.view.MenuItem;
+import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
+import com.atilim.uni.unipath.cons.Globals;
 import com.atilim.uni.unipath.customs.CustomLogcatTextView;
+import com.atilim.uni.unipath.customs.CustomThread;
+import com.atilim.uni.unipath.interfaces.ThreadRunInterface;
 
 import java.util.List;
 
 import es.munix.logcat.LogcatListener;
 import es.munix.logcat.LogcatTextView;
+
+import static android.view.ViewGroup.LayoutParams.MATCH_PARENT;
 
 /**
  * A {@link PreferenceActivity} that presents a set of application settings. On
@@ -60,6 +76,15 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
     private static boolean isDialogActive = false;
     private static AlertDialog.Builder builder;
     private static AlertDialog alertDialog;
+    private static SettingsActivity instance;
+
+    private static Context getContext(){
+        return instance;
+    }
+
+    private static SettingsActivity getInstance(){
+        return instance;
+    }
 
     /**
      * A preference value change listener that updates the preference's summary
@@ -126,6 +151,8 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setupActionBar();
+
+        instance = this;
     }
 
     /**
@@ -188,7 +215,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             logcatTextView.getLogcat(new LogcatListener() {
                 @Override
                 public void onLogcatCaptured(String s) {
-                    logcatTextView.getTextView().setText(Html.fromHtml(logcatTextViewText + s));
+                    logcatTextView.getTextView().setText(Html.fromHtml(Globals.customLogcatTextViewLog.toString() + s));
                 }
             });
 
@@ -335,6 +362,8 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
                     return true;
                 }
             });
+
+
         }
 
         @Override

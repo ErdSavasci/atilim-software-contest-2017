@@ -1,6 +1,8 @@
 package com.atilim.uni.unipath.json;
 
 import com.google.api.client.util.Key;
+import com.google.gson.annotations.Expose;
+import com.google.gson.annotations.SerializedName;
 
 import java.util.List;
 
@@ -9,9 +11,11 @@ import java.util.List;
  */
 
 public class Route {
-    @Key("overview_polyline")
+    @SerializedName("overview_polyline")
+    @Expose
     public OverviewPolyLine overviewPolyLine;
 
-    @Key("legs")
+    @SerializedName("legs")
+    @Expose
     public List<Leg> legs;
 }

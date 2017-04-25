@@ -1,6 +1,8 @@
 package com.atilim.uni.unipath.json;
 
 import com.google.api.client.util.Key;
+import com.google.gson.annotations.Expose;
+import com.google.gson.annotations.SerializedName;
 
 import java.util.List;
 
@@ -9,6 +11,7 @@ import java.util.List;
  */
 
 public class DirectionsResult {
-    @Key("routes")
+    @SerializedName("routes")
+    @Expose
     public List<Route> routes;
 }

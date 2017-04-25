@@ -24,6 +24,7 @@
 
     <!-- Strings related to Settings -->
     <string name="title_activity_settings">Settings</string>
+    <string name="title_activity_settings_uppercase">SETTINGS</string>
 
     <!-- Example General settings -->
     <string name="pref_header_general">General</string>
@@ -41,7 +42,8 @@
     <string name="pref_description_calibrate">Save reference points to calculate location indoor</string>
 
     <string name="title_activity_maps">Map</string>
-    <string name="user_is_not_in_university_text">You are not IN \nAtılım University Campus</string>
+    <string name="user_is_not_in_university_text">YOU ARE NOT IN \ATILIM UNIVERSITY CAMPUS</string>
+    <string name="user_is_not_in_department_text">YOU ARE NOT IN ANT\n ATILIM UNIVERSITY DEPARTMENT</string>
 
     <string name="about_dialog_text">Version Number: 01\n Build Number: 20171104\n Atılım University © 2017</string>
     <string name="copyright_dialog_text">All Atılım University photos are in copyright\n</string>
@@ -50,7 +52,9 @@
     <string name="calibrate_button_text">CALIBRATE</string>
     <string name="clear_button_text">CLEAR</string>
     <string name="gps_not_active_alert">GPS IS NOT ACTIVE</string>
-    <string name="gps_error_text">CANNOT FIND LOCATION IN DEPARTMENT</string>
+    <string name="wifi_not_active_alert">WIFI IS NOT ENABLED</string>
+    <string name="gps_wifi_not_active_alert">PLEASE TURN ON GPS AND WIFI</string>
+    <string name="location_notfound_text">CANNOT FIND LOCATION IN DEPARTMENT</string>
 
     <string-array name="route_options_array">
         <item>
