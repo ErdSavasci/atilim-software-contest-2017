@@ -6,6 +6,7 @@ import android.graphics.drawable.BitmapDrawable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.ImageView;
+import android.widget.MediaController;
 
 import com.joanzapata.iconify.IconDrawable;
 import com.joanzapata.iconify.Iconify;
@@ -16,6 +17,7 @@ import com.joanzapata.iconify.fonts.MaterialModule;
 
 import java.io.ByteArrayOutputStream;
 
+import pl.droidsonroids.gif.AnimationListener;
 import pl.droidsonroids.gif.GifDrawable;
 import pl.droidsonroids.gif.GifImageView;
 
@@ -33,6 +35,8 @@ public class SplashActivity extends AppCompatActivity {
                 .with(new MaterialModule());
 
         loadingImageGifView = (GifImageView) findViewById(R.id.loadingImageGifView);
+        loadingImageGifView.setKeepScreenOn(true);
+
         try{
             gifDrawable = new GifDrawable(getResources(), R.drawable.atilim_flip_logo);
             loadingImageGifView.setImageDrawable(gifDrawable);
@@ -41,17 +45,14 @@ public class SplashActivity extends AppCompatActivity {
             ex.printStackTrace();
         }
 
-        new Thread(new Runnable() {
+        ((GifDrawable) loadingImageGifView.getDrawable()).addAnimationListener(new AnimationListener() {
             @Override
-            public void run() {
-                try {
-                    Thread.sleep(1500);
-                    startMapsActivity();
-                } catch (InterruptedException ex) {
-                    ex.printStackTrace();
-                }
+            public void onAnimationCompleted(int loopNumber) {
+                gifDrawable.seekTo(0);
+                gifDrawable.setVisible(true, false);
+                startMapsActivity();
             }
-        }).start();
+        });
     }
 
     @Override
@@ -64,8 +65,6 @@ public class SplashActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
-
-        gifDrawable.stop();
     }
 
     private void startMapsActivity() {

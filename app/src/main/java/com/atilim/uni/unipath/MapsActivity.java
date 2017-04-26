@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.IntentSender;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
@@ -134,10 +135,10 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
         public void onReceive(Context context, Intent intent) {
             checkingPermission = true;
             if (intent.getAction().equals("TURN_ON_GPS_BY_SWITCH") && !intent.getBooleanExtra("FIRST_TIME", true)) {
-                if (ActivityCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                if (ActivityCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
                         ActivityCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                     ActivityCompat.requestPermissions(MapsActivity.this, new String[]{
-                            Manifest.permission.ACCESS_COARSE_LOCATION,
+                            Manifest.permission.ACCESS_FINE_LOCATION,
                             Manifest.permission.ACCESS_COARSE_LOCATION}, LOCATION_ACCESS_PERMISSIONS_REQ);
                 } else {
                     turnOnGPS();
@@ -163,7 +164,11 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
 
             Globals.isUserInUniversityArea = isUserInUniversityArea;
 
-            if (isUserInUniversityArea) {
+            SharedPreferences sharedPreferences = getPreferences(Context.MODE_PRIVATE);
+            boolean autoStart = sharedPreferences.getBoolean("NAVIGATION_AUTOSTART", true);
+
+            if (isUserInUniversityArea && (Globals.openNavigationActivityOnce || autoStart)) {
+                Globals.openNavigationActivityOnce = false;
                 Intent navigateIntent = new Intent(MapsActivity.this, NavigationActivity.class);
                 navigateIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK | Intent.FLAG_ACTIVITY_NEW_TASK);
                 startActivity(navigateIntent);
@@ -553,7 +558,11 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
         switch (requestCode) {
             case LOCATION_ACCESS_PERMISSIONS_REQ:
                 checkingPermission = false;
-                if (grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
+                if (grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    turnOnGPS();
+                }
+                else if(grantResults.length == 2 && grantResults[0] == PackageManager.PERMISSION_GRANTED &&
+                        grantResults[1] == PackageManager.PERMISSION_GRANTED){
                     turnOnGPS();
                 }
                 break;
@@ -737,7 +746,7 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
 
                             PolylineOptions polylineOptions = new PolylineOptions();
                             polylineOptions.width(7);
-                            polylineOptions.color(Color.BLUE);
+                            polylineOptions.color(Color.RED);
                             for (LatLng latlng : latLngs) {
                                 polylineOptions.add(latlng);
                             }

@@ -226,7 +226,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
                     SharedPreferences sharedPreferences = getActivity().getPreferences(Context.MODE_PRIVATE);
                     SharedPreferences.Editor editor = sharedPreferences.edit();
                     try{
-                        editor.putBoolean("GPS_AUTOSTART", (boolean) newValue);
+                        editor.putBoolean("NAVIGATION_AUTOSTART", (boolean) newValue);
                     }
                     catch(Exception ex){
                         ex.printStackTrace();

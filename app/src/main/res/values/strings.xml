@@ -32,8 +32,8 @@
     <string name="pref_title_license">Licenses</string>
     <string name="pref_description_license">Used resources with due to their licenses</string>
 
-    <string name="pref_title_gps_autostart">Auto Start GPS at Startup</string>
-    <string name="pref_description_gps_autostart">If you check this, GPS will be automatically started at startup</string>
+    <string name="pref_title_gps_autostart">Auto Skip Map and Open Navigation at Startup</string>
+    <string name="pref_description_gps_autostart">If you check this, navigation will be automatically started at startup if user is in Atılım University campus</string>
 
     <string name="pref_title_about">About</string>
     <string name="pref_description_about">Version and build number of application</string>
@@ -43,7 +43,7 @@
 
     <string name="title_activity_maps">Map</string>
     <string name="user_is_not_in_university_text">YOU ARE NOT IN \ATILIM UNIVERSITY CAMPUS</string>
-    <string name="user_is_not_in_department_text">YOU ARE NOT IN ANT\n ATILIM UNIVERSITY DEPARTMENT</string>
+    <string name="user_is_not_in_department_text">YOU ARE NOT IN ANY\n ATILIM UNIVERSITY DEPARTMENT</string>
 
     <string name="about_dialog_text">Version Number: 01\n Build Number: 20171104\n Atılım University © 2017</string>
     <string name="copyright_dialog_text">All Atılım University photos are in copyright\n</string>

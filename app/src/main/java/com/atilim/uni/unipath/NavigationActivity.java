@@ -13,6 +13,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
+import android.graphics.Paint;
 import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.drawable.BitmapDrawable;
@@ -144,10 +145,10 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
         public void onReceive(Context context, Intent intent) {
             checkingPermission = true;
             if (intent.getAction().equals("TURN_ON_GPS_BY_SWITCH") && !intent.getBooleanExtra("FIRST_TIME", true)) {
-                if (ActivityCompat.checkSelfPermission(NavigationActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                if (ActivityCompat.checkSelfPermission(NavigationActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
                         ActivityCompat.checkSelfPermission(NavigationActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                     ActivityCompat.requestPermissions(NavigationActivity.this, new String[]{
-                            Manifest.permission.ACCESS_COARSE_LOCATION,
+                            Manifest.permission.ACCESS_FINE_LOCATION,
                             Manifest.permission.ACCESS_COARSE_LOCATION}, LOCATION_ACCESS_PERMISSIONS_REQ);
                 } else {
                     turnOnGPS();
@@ -179,31 +180,63 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
                             final DMS toBeConvertedLatLng = new DMS(mLocationOfUser.getLatitude(), mLocationOfUser.getLongitude());
                             final DMS convertedLatLng = toBeConvertedLatLng.convertIntoDMS();
 
-                            int floorNumber = Globals.routerMacFloorNumberMatches.get(wifiManager.getConnectionInfo().getBSSID());
-                            if (floorNumber > -3 && floorNumber < 5) {
-                                gyroscopeObserver.unregister();
-                                recyclerView.setVisibility(View.GONE);
-                                notInCampusAlertTextView.setVisibility(View.GONE);
-                                floorPlanNavigationImageImageView.setVisibility(View.VISIBLE);
+                            gyroscopeObserver.unregister();
+                            recyclerView.setVisibility(View.GONE);
+                            notInCampusAlertTextView.setVisibility(View.GONE);
+                            floorPlanNavigationImageImageView.setVisibility(View.VISIBLE);
+                            floorPlanSelectorSpinner.setVisibility(View.VISIBLE);
 
-                                String floorPlanImageName = floorNumber >= 2 ? ("engfloor" + floorNumber) : ("engfloorminus" + Math.abs(floorNumber));
-                                Bitmap floorPlanImage = BitmapFactory.decodeResource(getResources(), getResources().getIdentifier(floorPlanImageName, "drawable", getPackageName()));
-                                Matrix rotateMatrix = new Matrix();
-                                rotateMatrix.postRotate(90.0f);
-                                floorPlanImage = Bitmap.createBitmap(floorPlanImage, 0, 0, floorPlanImage.getWidth(), floorPlanImage.getHeight(), rotateMatrix, true);
-                                floorPlanNavigationImageImageView.setImageDrawable(new BitmapDrawable(getResources(), floorPlanImage));
-                                floorPlanNavigationImageImageView.setZoom(1.5f);
-                                floorPlanSelectorSpinner.setSelection(floorNumber + 2);
+                            refreshButtonNavigation.setBackground(getResources().getDrawable(R.drawable.ic_sync_black));
+                            drawerButtonNavigation.setBackground(getResources().getDrawable(R.drawable.drawer_black));
 
+                            String currentBSSID = wifiManager.getConnectionInfo().getBSSID().toLowerCase();
+                            Integer floorNumber = Globals.routerMacFloorNumberMatches.get(currentBSSID);
+                            if (floorNumber != null && floorNumber > -3 && floorNumber < 5) {
                                 //FIND POSITION AT CORRESPONDED FLOOR
                                 setWeightsAtFloor(floorNumber);
                                 int refPointIDBestMatch = getBestMatchRefPointID(floorNumber);
                                 PointF refPointPosBestMatch = getBestMatchRefPointPos(refPointIDBestMatch, floorNumber);
                                 Toast.makeText(getApplicationContext(), refPointPosBestMatch.toString(), Toast.LENGTH_SHORT).show();
 
-                                if (refPointPosBestMatch.x != -1 && refPointPosBestMatch.y != -1) {
-                                    refreshButtonNavigation.setBackground(getResources().getDrawable(R.drawable.ic_sync_black));
-                                    drawerButtonNavigation.setBackground(getResources().getDrawable(R.drawable.drawer_black));
+                                //DRAW BLUE CIRCLE ON CORRESPONDED FLOOR PLAN IMAGE W.R.T COORDINATES
+                                if(refPointPosBestMatch.x != -1 && refPointPosBestMatch.y != -1){
+                                    String floorPlanImageName = floorNumber >= 2 ? ("engfloor" + floorNumber) : ("engfloorminus" + Math.abs(floorNumber));
+
+                                    if((floorNumber + 2) != floorPlanSelectorSpinner.getSelectedItemPosition()){
+                                        Bitmap floorPlanImage = BitmapFactory.decodeResource(getResources(), getResources().getIdentifier(floorPlanImageName, "drawable", getPackageName()));
+                                        Matrix rotateMatrix = new Matrix();
+                                        rotateMatrix.postRotate(90.0f);
+                                        floorPlanImage = Bitmap.createBitmap(floorPlanImage, 0, 0, floorPlanImage.getWidth(), floorPlanImage.getHeight(), rotateMatrix, true);
+                                        floorPlanNavigationImageImageView.setImageDrawable(new BitmapDrawable(getResources(), floorPlanImage));
+                                        floorPlanNavigationImageImageView.setZoom(1.5f);
+                                        floorPlanSelectorSpinner.setSelection(floorNumber + 2);
+                                    }
+
+                                    BitmapFactory.Options myOptions = new BitmapFactory.Options();
+                                    myOptions.inDither = true;
+                                    myOptions.inScaled = false;
+                                    myOptions.inPreferredConfig = Bitmap.Config.ARGB_8888;
+                                    myOptions.inPurgeable = true;
+
+                                    Bitmap bitmap = BitmapFactory.decodeResource(getResources(), getResources().getIdentifier(floorPlanImageName, "drawable", getPackageName()), myOptions);
+                                    Paint paint = new Paint();
+                                    paint.setAntiAlias(true);
+                                    paint.setColor(Color.BLUE);
+
+                                    Bitmap workingBitmap = Bitmap.createBitmap(bitmap);
+                                    Bitmap mutableBitmap = workingBitmap.copy(Bitmap.Config.ARGB_8888, true);
+
+                                    Canvas canvas = new Canvas(mutableBitmap);
+                                    canvas.drawCircle(refPointPosBestMatch.x, refPointPosBestMatch.y, 7, paint);
+
+                                    floorPlanNavigationImageImageView.setImageBitmap(mutableBitmap);
+
+                                    workingBitmap.recycle();
+                                    bitmap.recycle();
+                                }
+                                else{
+                                    notInCampusAlertTextView.setText(R.string.location_notfound_text);
+                                    notInCampusAlertTextView.setVisibility(View.VISIBLE);
                                 }
                             }
                             else{
@@ -281,14 +314,14 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(new PanoramaAdapter(getApplicationContext()));
 
-        weightsFloor_2 = new Integer[100];
-        weightsFloor_1 = new Integer[100];
-        weightsFloor0 = new Integer[100];
-        weightsFloor1 = new Integer[100];
-        weightsFloor2 = new Integer[100];
-        weightsFloor3 = new Integer[100];
-        weightsFloor4 = new Integer[100];
-        for (int i = 0; i < 100; i++) {
+        weightsFloor_2 = new Integer[85];
+        weightsFloor_1 = new Integer[85];
+        weightsFloor0 = new Integer[85];
+        weightsFloor1 = new Integer[85];
+        weightsFloor2 = new Integer[85];
+        weightsFloor3 = new Integer[85];
+        weightsFloor4 = new Integer[85];
+        for (int i = 0; i < 85; i++) {
             weightsFloor_2[i] = 0;
             weightsFloor_1[i] = 0;
             weightsFloor0[i] = 0;
@@ -322,26 +355,15 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             checkingPermission = true;
-            if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
                     checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(new String[]{
-                        Manifest.permission.ACCESS_COARSE_LOCATION,
+                        Manifest.permission.ACCESS_FINE_LOCATION,
                         Manifest.permission.ACCESS_COARSE_LOCATION}, LOCATION_ACCESS_PERMISSIONS_REQ);
             } else {
                 turnOnGPS();
             }
             checkingPermission = false;
-        }
-
-        atilimOverview = BitmapFactory.decodeResource(getResources(), R.drawable.atilim_overview);
-
-        if (!Globals.isUserInUniversityArea) {
-            if (atilimOverview.getHeight() >= atilimOverview.getWidth()) {
-                atilimOverviewOutput = Bitmap.createBitmap(atilimOverview, 0, atilimOverview.getHeight() / 2 - atilimOverview.getWidth() / 2, atilimOverview.getWidth(), atilimOverview.getWidth());
-            } else {
-                atilimOverviewOutput = Bitmap.createBitmap(atilimOverview, atilimOverview.getWidth() / 2 - atilimOverview.getHeight() / 2, 0, atilimOverview.getHeight(), atilimOverview.getHeight());
-            }
-            getWindow().getDecorView().setBackground(new BitmapDrawable(getResources(), atilimOverviewOutput));
         }
 
         notInCampusAlertTextView = (TextView) findViewById(R.id.notInCampusAlertTextView);
@@ -416,21 +438,19 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
             }
         });
 
-        floorPlanSelectorSpinner = (CustomSpinner) findViewById(R.id.floorPlanSelectorSpinner);
+        floorPlanSelectorSpinner = (CustomSpinner) findViewById(R.id.floorPlanSelectorSpinnerNavigation);
         ArrayAdapter<CharSequence> aa = ArrayAdapter.createFromResource(this, R.array.floor_numbers_array, R.layout.simple_list_item_customized_2);
         floorPlanSelectorSpinner.setAdapter(aa);
         floorPlanSelectorSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                if(floorPlanNavigationImageImageView.getVisibility() == View.VISIBLE){
-                    String floorPlanImageName = position >= 2 ? ("engfloor" + position) : ("engfloorminus" + Math.abs(position - 2));
-                    Bitmap floorPlanImage = BitmapFactory.decodeResource(getResources(), getResources().getIdentifier(floorPlanImageName, "drawable", getPackageName()));
-                    Matrix rotateMatrix = new Matrix();
-                    rotateMatrix.postRotate(90.0f);
-                    floorPlanImage = Bitmap.createBitmap(floorPlanImage, 0, 0, floorPlanImage.getWidth(), floorPlanImage.getHeight(), rotateMatrix, true);
-                    floorPlanNavigationImageImageView.setImageDrawable(new BitmapDrawable(getResources(), floorPlanImage));
-                    floorPlanNavigationImageImageView.setZoom(1.5f);
-                }
+                String floorPlanImageName = position >= 2 ? ("engfloor" + (position - 2)) : ("engfloorminus" + Math.abs(position - 2));
+                Bitmap floorPlanImage = BitmapFactory.decodeResource(getResources(), getResources().getIdentifier(floorPlanImageName, "drawable", getPackageName()));
+                Matrix rotateMatrix = new Matrix();
+                rotateMatrix.postRotate(90.0f);
+                floorPlanImage = Bitmap.createBitmap(floorPlanImage, 0, 0, floorPlanImage.getWidth(), floorPlanImage.getHeight(), rotateMatrix, true);
+                floorPlanNavigationImageImageView.setImageDrawable(new BitmapDrawable(getResources(), floorPlanImage));
+                floorPlanNavigationImageImageView.setZoom(1.5f);
             }
 
             @Override
@@ -438,6 +458,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
 
             }
         });
+        floorPlanSelectorSpinner.setVisibility(View.GONE);
 
         contentView = findViewById(R.id.recyclerViewPanorama).getRootView();
         contentDecorView = getWindow().getDecorView();
@@ -553,71 +574,76 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
     }
 
     private void setWeightsAtFloor(int floorNumber) {
-        try {
+        try{
             String rootFolder = Environment.getExternalStorageDirectory().toString();
-            File txtDir = new File(rootFolder + "/AccessPointsInfo/floorNumber" + Integer.toString(floorNumber).replace("-", "_"));
-            File[] allFilesInFloorFolder = txtDir.listFiles();
-            int iterationCount = allFilesInFloorFolder.length;
-            int iterationCountAP;
-            int iterationCountCountAP = 0;
-            int referencePointNumber;
-            int matchCount = 0;
+            File txtDir = new File(rootFolder + "/AccessPointsInfo/floorNumber" + Integer.toString(floorNumber).replace("-", "_") + "/");
+            String[] allFilesInFloorFolder = txtDir.list();
+            boolean canReadable = txtDir.canRead();
+            boolean exists = txtDir.exists();
+            if(canReadable && exists){
+                int iterationCount = allFilesInFloorFolder.length;
+                int iterationCountAP;
+                int iterationCountCountAP = 0;
+                int referencePointNumber;
+                int matchCount = 0;
 
-            if (ActivityCompat.checkSelfPermission(NavigationActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
-                    ActivityCompat.checkSelfPermission(NavigationActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                if (ActivityCompat.checkSelfPermission(NavigationActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED &&
+                        ActivityCompat.checkSelfPermission(NavigationActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
 
-                LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+                    LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
 
-                if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-                    Toast.makeText(getApplicationContext(), "GPS isn't active. Please activate GPS.", Toast.LENGTH_SHORT).show();
-                } else {
-                    List<ScanResult> scanResults = wifiManager.getScanResults();
+                    if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                        Toast.makeText(getApplicationContext(), "GPS isn't active. Please activate GPS.", Toast.LENGTH_SHORT).show();
+                    } else {
+                        List<ScanResult> scanResults = wifiManager.getScanResults();
 
-                    if (scanResults != null && scanResults.size() > 0) {
-                        while (iterationCount > 0) {
-                            referencePointNumber = Integer.parseInt(allFilesInFloorFolder[iterationCount].getName().replace("referencePoint", "").replace(".json", ""));
-                            iterationCountAP = getArraySizeOfAPsJSON(referencePointNumber, txtDir);
-                            while (iterationCountCountAP < iterationCountAP) {
-                                containsAP = false;
-                                matchDBM = false;
-                                String bssid = getValueFromAccessPointJSON(referencePointNumber, iterationCountCountAP, "BSSID", txtDir);
-
-                                for (ScanResult s : scanResults) {
-                                    if (s.BSSID.equals(bssid))
-                                        containsAP = true;
-                                }
-
-                                if (containsAP) {
-                                    String DBM = getValueFromAccessPointJSON(referencePointNumber, iterationCountCountAP, "DBM", txtDir);
-                                    int dbm = Integer.parseInt(DBM);
+                        if (scanResults != null && scanResults.size() > 0) {
+                            while (iterationCount > 0) {
+                                referencePointNumber = Integer.parseInt(allFilesInFloorFolder[iterationCount - 1].replace("referencePoint", "").replace(".json", ""));
+                                iterationCountAP = getArraySizeOfAPsJSON(referencePointNumber, txtDir);
+                                while (iterationCountCountAP < iterationCountAP) {
+                                    containsAP = false;
+                                    matchDBM = false;
+                                    String bssid = getValueFromAccessPointJSON(referencePointNumber, iterationCountCountAP, "BSSID", txtDir);
 
                                     for (ScanResult s : scanResults) {
-                                        if (s.BSSID.equals(bssid)) {
-                                            if (Math.abs(Math.abs(s.level) - Math.abs(dbm)) <= 3)
-                                                matchDBM = true;
+                                        if (s.BSSID.equals(bssid))
+                                            containsAP = true;
+                                    }
+
+                                    if (containsAP) {
+                                        String DBM = getValueFromAccessPointJSON(referencePointNumber, iterationCountCountAP, "STRENGTH", txtDir);
+                                        int dbm = Integer.parseInt(DBM);
+
+                                        for (ScanResult s : scanResults) {
+                                            if (s.BSSID.equals(bssid)) {
+                                                if (Math.abs(Math.abs(s.level) - Math.abs(dbm)) <= 3)
+                                                    matchDBM = true;
+                                            }
+                                        }
+
+                                        if (matchDBM) {
+                                            matchCount++;
                                         }
                                     }
 
-                                    if (matchDBM) {
-                                        matchCount++;
-                                    }
+                                    iterationCountCountAP++;
+                                }
+                                if (matchCount > 0) {
+                                    Integer[] weightsFloorNum = weightsFloor.get(floorNumber);
+                                    weightsFloorNum[referencePointNumber - 1] = matchCount;
+                                    weightsFloor.remove(floorNumber);
+                                    weightsFloor.put(floorNumber, weightsFloorNum);
                                 }
 
-                                iterationCountCountAP++;
+                                iterationCount--;
                             }
-                            if (matchCount > 0) {
-                                Integer[] weightsFloorNum = weightsFloor.get(floorNumber);
-                                weightsFloorNum[referencePointNumber - 1] = matchCount;
-                                weightsFloor.remove(floorNumber);
-                                weightsFloor.put(floorNumber, weightsFloorNum);
-                            }
-
-                            iterationCount--;
                         }
                     }
                 }
             }
-        } catch (Exception ex) {
+        }
+        catch(Exception ex){
             ex.printStackTrace();
 
             notInCampusAlertTextView.setText(R.string.location_notfound_text);
@@ -652,8 +678,8 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
                 fileReader.close();
             }
 
-            return fileJSONObject != null ? new PointF(Float.parseFloat(fileJSONObject.getJSONObject("ReferencePoint" + referencePointID).getString("XPos")),
-                    Float.parseFloat(fileJSONObject.getJSONObject("ReferencePoint" + referencePointID).getString("YPos"))) : new PointF(-1, -1);
+            return fileJSONObject != null ? new PointF(Float.parseFloat(fileJSONObject.getString("XPos")),
+                    Float.parseFloat(fileJSONObject.getString("YPos"))) : new PointF(-1, -1);
         } catch (Exception ex) {
             ex.printStackTrace();
 
@@ -665,70 +691,187 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
     }
 
     private int getBestMatchRefPointID(int floorNumber) {
-        int maxWeight = Integer.MAX_VALUE;
+        int maxWeight = 0;
+        int maxStrength = 0;
+        int standardCount = 0;
         int refPointID = 1;
         int refPointIDIndex = 1;
+
+        String rootFolder = Environment.getExternalStorageDirectory().toString();
+        File txtDir = new File(rootFolder + "/AccessPointsInfo/floorNumber" + Integer.toString(floorNumber).replace("-", "_"));
 
         switch (floorNumber) {
             case -2:
                 for (int refPointWeight : weightsFloor_2) {
-                    if (refPointWeight < maxWeight) {
+                    if (refPointWeight > maxWeight) {
                         maxWeight = refPointWeight;
                         refPointID = refPointIDIndex;
+                    }
+                    else if(refPointWeight == maxWeight){
+                        List<ScanResult> scanResults = wifiManager.getScanResults();
+                        String bssid = wifiManager.getConnectionInfo().getBSSID();
+
+                        int arraySize = getArraySizeOfAPsJSON(refPointIDIndex, txtDir);
+                        while(standardCount < arraySize){
+                            for (ScanResult s : scanResults) {
+                                if (s.BSSID.equals(bssid)) {
+                                    int strength = Integer.parseInt(getValueFromAccessPointJSON(refPointIDIndex, standardCount, "STRENGTH", txtDir));
+                                    if (strength > maxStrength)
+                                        maxStrength = strength;
+                                }
+                            }
+                            standardCount++;
+                        }
                     }
                     refPointIDIndex++;
                 }
                 break;
             case -1:
                 for (int refPointWeight : weightsFloor_1) {
-                    if (refPointWeight < maxWeight) {
+                    if (refPointWeight > maxWeight) {
                         maxWeight = refPointWeight;
                         refPointID = refPointIDIndex;
+                    }
+                    else if(refPointWeight == maxWeight){
+                        List<ScanResult> scanResults = wifiManager.getScanResults();
+                        String bssid = wifiManager.getConnectionInfo().getBSSID();
+
+                        int arraySize = getArraySizeOfAPsJSON(refPointIDIndex, txtDir);
+                        while(standardCount < arraySize){
+                            for (ScanResult s : scanResults) {
+                                if (s.BSSID.equals(bssid)) {
+                                    int strength = Integer.parseInt(getValueFromAccessPointJSON(refPointIDIndex, standardCount, "STRENGTH", txtDir));
+                                    if (strength > maxStrength)
+                                        maxStrength = strength;
+                                }
+                            }
+                            standardCount++;
+                        }
                     }
                     refPointIDIndex++;
                 }
                 break;
             case 0:
                 for (int refPointWeight : weightsFloor0) {
-                    if (refPointWeight < maxWeight) {
+                    if (refPointWeight > maxWeight) {
                         maxWeight = refPointWeight;
                         refPointID = refPointIDIndex;
+                    }
+                    else if(refPointWeight == maxWeight){
+                        List<ScanResult> scanResults = wifiManager.getScanResults();
+                        String bssid = wifiManager.getConnectionInfo().getBSSID();
+
+                        int arraySize = getArraySizeOfAPsJSON(refPointIDIndex, txtDir);
+                        while(standardCount < arraySize){
+                            for (ScanResult s : scanResults) {
+                                if (s.BSSID.equals(bssid)) {
+                                    int strength = Integer.parseInt(getValueFromAccessPointJSON(refPointIDIndex, standardCount, "STRENGTH", txtDir));
+                                    if (strength > maxStrength)
+                                        maxStrength = strength;
+                                }
+                            }
+                            standardCount++;
+                        }
                     }
                     refPointIDIndex++;
                 }
                 break;
             case 1:
                 for (int refPointWeight : weightsFloor1) {
-                    if (refPointWeight < maxWeight) {
+                    if (refPointWeight > maxWeight) {
                         maxWeight = refPointWeight;
                         refPointID = refPointIDIndex;
+                    }
+                    else if(refPointWeight == maxWeight){
+                        List<ScanResult> scanResults = wifiManager.getScanResults();
+                        String bssid = wifiManager.getConnectionInfo().getBSSID();
+
+                        int arraySize = getArraySizeOfAPsJSON(refPointIDIndex, txtDir);
+                        while(standardCount < arraySize){
+                            for (ScanResult s : scanResults) {
+                                if (s.BSSID.equals(bssid)) {
+                                    int strength = Integer.parseInt(getValueFromAccessPointJSON(refPointIDIndex, standardCount, "STRENGTH", txtDir));
+                                    if (strength > maxStrength)
+                                        maxStrength = strength;
+                                }
+                            }
+                            standardCount++;
+                        }
                     }
                     refPointIDIndex++;
                 }
                 break;
             case 2:
                 for (int refPointWeight : weightsFloor2) {
-                    if (refPointWeight < maxWeight) {
+                    if (refPointWeight > maxWeight) {
                         maxWeight = refPointWeight;
                         refPointID = refPointIDIndex;
+                    }
+                    else if(refPointWeight == maxWeight){
+                        List<ScanResult> scanResults = wifiManager.getScanResults();
+                        String bssid = wifiManager.getConnectionInfo().getBSSID();
+
+                        int arraySize = getArraySizeOfAPsJSON(refPointIDIndex, txtDir);
+                        while(standardCount < arraySize){
+                            for (ScanResult s : scanResults) {
+                                if (s.BSSID.equals(bssid)) {
+                                    int strength = Integer.parseInt(getValueFromAccessPointJSON(refPointIDIndex, standardCount, "STRENGTH", txtDir));
+                                    if (strength > maxStrength)
+                                        maxStrength = strength;
+                                }
+                            }
+                            standardCount++;
+                        }
                     }
                     refPointIDIndex++;
                 }
                 break;
             case 3:
                 for (int refPointWeight : weightsFloor3) {
-                    if (refPointWeight < maxWeight) {
+                    if (refPointWeight > maxWeight) {
                         maxWeight = refPointWeight;
                         refPointID = refPointIDIndex;
+                    }
+                    else if(refPointWeight == maxWeight){
+                        List<ScanResult> scanResults = wifiManager.getScanResults();
+                        String bssid = wifiManager.getConnectionInfo().getBSSID();
+
+                        int arraySize = getArraySizeOfAPsJSON(refPointIDIndex, txtDir);
+                        while(standardCount < arraySize){
+                            for (ScanResult s : scanResults) {
+                                if (s.BSSID.equals(bssid)) {
+                                    int strength = Integer.parseInt(getValueFromAccessPointJSON(refPointIDIndex, standardCount, "STRENGTH", txtDir));
+                                    if (strength > maxStrength)
+                                        maxStrength = strength;
+                                }
+                            }
+                            standardCount++;
+                        }
                     }
                     refPointIDIndex++;
                 }
                 break;
             case 4:
                 for (int refPointWeight : weightsFloor4) {
-                    if (refPointWeight < maxWeight) {
+                    if (refPointWeight > maxWeight) {
                         maxWeight = refPointWeight;
                         refPointID = refPointIDIndex;
+                    }
+                    else if(refPointWeight == maxWeight){
+                        List<ScanResult> scanResults = wifiManager.getScanResults();
+                        String bssid = wifiManager.getConnectionInfo().getBSSID();
+
+                        int arraySize = getArraySizeOfAPsJSON(refPointIDIndex, txtDir);
+                        while(standardCount < arraySize){
+                            for (ScanResult s : scanResults) {
+                                if (s.BSSID.equals(bssid)) {
+                                    int strength = Integer.parseInt(getValueFromAccessPointJSON(refPointIDIndex, standardCount, "STRENGTH", txtDir));
+                                    if (strength > maxStrength)
+                                        maxStrength = strength;
+                                }
+                            }
+                            standardCount++;
+                        }
                     }
                     refPointIDIndex++;
                 }
@@ -855,7 +998,11 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
         switch (requestCode) {
             case LOCATION_ACCESS_PERMISSIONS_REQ:
                 checkingPermission = false;
-                if (grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
+                if (grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    turnOnGPS();
+                }
+                else if(grantResults.length == 2 && grantResults[0] == PackageManager.PERMISSION_GRANTED &&
+                        grantResults[1] == PackageManager.PERMISSION_GRANTED){
                     turnOnGPS();
                 }
                 break;
@@ -965,6 +1112,17 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
         startCheckWifiStatusThread();
         dateTimeMillis = System.currentTimeMillis();
         gyroscopeObserver.register(this);
+
+        atilimOverview = BitmapFactory.decodeResource(getResources(), R.drawable.atilim_overview);
+
+        if (!Globals.isUserInUniversityArea) {
+            if (atilimOverview.getHeight() >= atilimOverview.getWidth()) {
+                atilimOverviewOutput = Bitmap.createBitmap(atilimOverview, 0, atilimOverview.getHeight() / 2 - atilimOverview.getWidth() / 2, atilimOverview.getWidth(), atilimOverview.getWidth());
+            } else {
+                atilimOverviewOutput = Bitmap.createBitmap(atilimOverview, atilimOverview.getWidth() / 2 - atilimOverview.getHeight() / 2, 0, atilimOverview.getHeight(), atilimOverview.getHeight());
+            }
+            getWindow().getDecorView().setBackground(new BitmapDrawable(getResources(), atilimOverviewOutput));
+        }
     }
 
     @Override
@@ -986,6 +1144,13 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
             customThreadCheckLocation.stopRunning(false);
         if (customThreadCheckGPSState != null)
             customThreadCheckGPSState.stopRunning(false);
+
+        if(atilimOverviewOutput != null){
+            atilimOverviewOutput.recycle();
+        }
+        if(atilimOverview != null){
+            atilimOverview.recycle();
+        }
     }
 
     @Override
@@ -1000,7 +1165,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
                 customThreadCheckGPSState.stopRunning(false);
 
             LocalBroadcastManager.getInstance(this).unregisterReceiver(receiverMaps);
-            atilimOverviewOutput.recycle();
+            floorPlanNavigationImageImageView.setImageDrawable(null);
         }
     }
 

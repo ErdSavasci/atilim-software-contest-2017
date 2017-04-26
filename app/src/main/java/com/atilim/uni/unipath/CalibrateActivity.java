@@ -111,17 +111,9 @@ public class CalibrateActivity extends AppCompatActivity implements GoogleApiCli
                         ActivityCompat.requestPermissions(CalibrateActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE}, EXT_READ_WRITE_REQUEST_PERMISSION);
                     else {
                         saveInformation(referencePointID);
-                        Bitmap floorPlanImage = BitmapFactory.decodeResource(getResources(), getResources().getIdentifier(globalFloorPlanImageName, "drawable", getPackageName()));
-                        floorPlanCalibrateImage.setImageDrawable(new BitmapDrawable(getResources(), floorPlanImage));
-                        floorPlanCalibrateImage.setCurrentImageName(globalFloorPlanImageName);
-                        floorPlanCalibrateImage.setPackageName(getPackageName());
                     }
                 } else {
                     saveInformation(referencePointID);
-                    Bitmap floorPlanImage = BitmapFactory.decodeResource(getResources(), getResources().getIdentifier(globalFloorPlanImageName, "drawable", getPackageName()));
-                    floorPlanCalibrateImage.setImageDrawable(new BitmapDrawable(getResources(), floorPlanImage));
-                    floorPlanCalibrateImage.setCurrentImageName(globalFloorPlanImageName);
-                    floorPlanCalibrateImage.setPackageName(getPackageName());
                 }
             }
         });
@@ -132,20 +124,10 @@ public class CalibrateActivity extends AppCompatActivity implements GoogleApiCli
             public void onClick(View v) {
                 Bitmap floorPlanImage = BitmapFactory.decodeResource(getResources(), getResources().getIdentifier(globalFloorPlanImageName, "drawable", getPackageName()));
                 floorPlanCalibrateImage.setImageDrawable(new BitmapDrawable(getResources(), floorPlanImage));
-                floorPlanCalibrateImage.setCurrentImageName(globalFloorPlanImageName);
-                floorPlanCalibrateImage.setPackageName(getPackageName());
                 dotXPos = -1f;
                 dotYPos = -1f;
             }
         });
-
-        atilimOverview = BitmapFactory.decodeResource(getResources(), R.drawable.atilim_overview);
-        if (atilimOverview.getHeight() >= atilimOverview.getWidth()) {
-            atilimOverviewOutput = Bitmap.createBitmap(atilimOverview, 0, atilimOverview.getHeight() / 2 - atilimOverview.getWidth() / 2, atilimOverview.getWidth(), atilimOverview.getWidth());
-        } else {
-            atilimOverviewOutput = Bitmap.createBitmap(atilimOverview, atilimOverview.getWidth() / 2 - atilimOverview.getHeight() / 2, 0, atilimOverview.getHeight(), atilimOverview.getHeight());
-        }
-        getWindow().getDecorView().setBackground(new BitmapDrawable(getResources(), atilimOverviewOutput));
 
         refPointPositionTextView = (TextView) findViewById(R.id.referencePointPositionTextView);
 
@@ -194,16 +176,12 @@ public class CalibrateActivity extends AppCompatActivity implements GoogleApiCli
 
                 Bitmap floorPlanImage = BitmapFactory.decodeResource(getResources(), getResources().getIdentifier(floorPlanImageName, "drawable", getPackageName()));
                 floorPlanCalibrateImage.setImageDrawable(new BitmapDrawable(getResources(), floorPlanImage));
-                floorPlanCalibrateImage.setCurrentImageName(floorPlanImageName);
-                floorPlanCalibrateImage.setPackageName(getPackageName());
             }
 
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
                 Bitmap floorPlanImage = BitmapFactory.decodeResource(getResources(), R.drawable.engfloorminus2);
                 floorPlanCalibrateImage.setImageDrawable(new BitmapDrawable(getResources(), floorPlanImage));
-                floorPlanCalibrateImage.setCurrentImageName("engfloorminus2");
-                floorPlanCalibrateImage.setPackageName(getPackageName());
             }
         });
         floorPlanSelectorSpinner.setOnSpinnerEventsListenerInterface(new OnSpinnerEventsListenerInterface() {
@@ -285,7 +263,13 @@ public class CalibrateActivity extends AppCompatActivity implements GoogleApiCli
     protected void onResume() {
         super.onResume();
 
-
+        atilimOverview = BitmapFactory.decodeResource(getResources(), R.drawable.atilim_overview);
+        if (atilimOverview.getHeight() >= atilimOverview.getWidth()) {
+            atilimOverviewOutput = Bitmap.createBitmap(atilimOverview, 0, atilimOverview.getHeight() / 2 - atilimOverview.getWidth() / 2, atilimOverview.getWidth(), atilimOverview.getWidth());
+        } else {
+            atilimOverviewOutput = Bitmap.createBitmap(atilimOverview, atilimOverview.getWidth() / 2 - atilimOverview.getHeight() / 2, 0, atilimOverview.getHeight(), atilimOverview.getHeight());
+        }
+        getWindow().getDecorView().setBackground(new BitmapDrawable(getResources(), atilimOverviewOutput));
     }
 
     private boolean isExternalStorageAvailable() {
@@ -344,16 +328,16 @@ public class CalibrateActivity extends AppCompatActivity implements GoogleApiCli
                 boolean isSuccess;
                 boolean isAPFound = false;
                 try {
-                    if (txtDir != null && !txtDir.exists())
+                    if (txtDir != null && !txtDir.exists()) {
                         isSuccess = txtDir.mkdir();
+                        txtDir.setExecutable(true);
+                        txtDir.setReadable(true);
+                        txtDir.setWritable(true);
+                    }
                     else
                         isSuccess = true;
 
                     if (!Objects.equals(txtFileName, "") && isSuccess) {
-                        txtDir.setExecutable(true);
-                        txtDir.setReadable(true);
-                        txtDir.setWritable(true);
-
                         File txtFile = new File(txtDir, txtFileName);
                         if (!txtFile.exists())
                             isSuccess = txtFile.createNewFile();
@@ -366,7 +350,7 @@ public class CalibrateActivity extends AppCompatActivity implements GoogleApiCli
 
                             for (ScanResult scanResult : scanResults) {
                                 if (scanResult.SSID.contains("eduroam") || scanResult.SSID.contains("ATILIM_WIFI") ||
-                                        scanResult.SSID.contains("eduroam_kurulum") || scanResult.SSID.contains("ERD")) {
+                                        scanResult.SSID.contains("eduroam_kurulum")) {
                                     isAPFound = true;
 
                                     //Create JSON Content
@@ -405,7 +389,6 @@ public class CalibrateActivity extends AppCompatActivity implements GoogleApiCli
                                 Uri fileContentUri = Uri.fromFile(txtDir);
                                 mediaScannerIntent.setData(fileContentUri);
                                 this.sendBroadcast(mediaScannerIntent);
-
                                 MediaScannerConnection.scanFile(getApplicationContext(), new String[]{ txtDir.toString() }, null, null);
 
                             } catch (JSONException ex) {
@@ -429,41 +412,6 @@ public class CalibrateActivity extends AppCompatActivity implements GoogleApiCli
         } else {
             ActivityCompat.requestPermissions(CalibrateActivity.this, new String[]{Manifest.permission.ACCESS_COARSE_LOCATION,
                     Manifest.permission.ACCESS_FINE_LOCATION}, LOCATION_ACCESS_PERMISSIONS_REQ);
-        }
-    }
-
-    private String getValueFromAccessPointJSON(int referencePointID, int floorNumber, int arrayIndex, String key) {
-        String rootFolder = Environment.getExternalStorageDirectory().toString();
-        File txtDir = new File(rootFolder + "/AccessPointsInfo/floorNumber" + floorNumber);
-        String txtFileName = "referencePoint" + referencePointID + ".json";
-        JSONObject fileJSONObject = null;
-        try {
-            File txtFile = new File(txtDir, txtFileName);
-            FileReader fileReader = new FileReader(txtFile);
-            BufferedReader fileBufferedReader = new BufferedReader(fileReader);
-            String fileContent;
-            StringBuilder stringBuilder = new StringBuilder();
-            while ((fileContent = fileBufferedReader.readLine()) != null) {
-                stringBuilder.append(fileContent);
-                stringBuilder.append(System.getProperty("line.separator"));
-            }
-
-            try {
-                fileJSONObject = new JSONObject(stringBuilder.toString());
-                Toast.makeText(getApplicationContext(), fileJSONObject.getJSONObject("ReferencePoint" + referencePointID).getJSONArray("AccessPoints").getJSONObject(arrayIndex).getString(key), Toast.LENGTH_SHORT).show();
-            } catch (JSONException ex) {
-                ex.printStackTrace();
-            }
-            fileBufferedReader.close();
-            fileReader.close();
-
-            return fileJSONObject != null ? (fileJSONObject.getJSONObject("ReferencePoint" + referencePointID).getJSONArray("AccessPoints").getJSONObject(arrayIndex).getString(key)) : null;
-        } catch (IOException ex) {
-            ex.printStackTrace();
-            return null;
-        } catch (JSONException ex) {
-            ex.printStackTrace();
-            return null;
         }
     }
 
@@ -556,11 +504,21 @@ public class CalibrateActivity extends AppCompatActivity implements GoogleApiCli
     }
 
     @Override
+    protected void onStop() {
+        super.onStop();
+
+        if(atilimOverview != null)
+            atilimOverview.recycle();
+        if(atilimOverviewOutput != null)
+            atilimOverviewOutput.recycle();
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
 
-        atilimOverview.recycle();
-        atilimOverviewOutput.recycle();
-        floorPlanCalibrateImage.setImageDrawable(null);
+        if(isFinishing()){
+            floorPlanCalibrateImage.setImageDrawable(null);
+        }
     }
 }
