@@ -1,8 +1,11 @@
 package com.atilim.uni.unipath.cons;
 
+import com.atilim.uni.unipath.R;
 import com.atilim.uni.unipath.customs.CustomLogcatTextView;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import es.munix.logcat.LogcatTextView;
 
@@ -20,7 +23,8 @@ public class Globals {
         routerMacFloorNumberMatches.put("94:b4:0f:15:eb:70", -1);
         routerMacFloorNumberMatches.put("94:b4:0f:15:eb:d0", -1);
         routerMacFloorNumberMatches.put("94:b4:0f:15:b3:d0", -1);
-        routerMacFloorNumberMatches.put("94:b4:0f:16:02:20", 0);
+        routerMacFloorNumberMatches.put("94:b4:0f:16:02:20", -1);//0
+        routerMacFloorNumberMatches.put("94:b4:0f:16:02:30", -1);//0
         routerMacFloorNumberMatches.put("94:b4:0f:16:01:f0", -2);
     }
 }

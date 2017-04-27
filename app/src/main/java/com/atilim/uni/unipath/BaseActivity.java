@@ -208,7 +208,13 @@ public class BaseActivity extends Activity implements NavigationView.OnNavigatio
 
         switch (requestCode) {
             case LOCATION_ACCESS_PERMISSIONS_REQ:
-                if (grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
+                if (grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    if(isGPSSwitchChecked){
+                        LocalBroadcastManager.getInstance(BaseActivity.this).sendBroadcast(new Intent("TURN_ON_GPS_BY_SWITCH"));
+                    }
+                }
+                else if(grantResults.length == 2 && grantResults[0] == PackageManager.PERMISSION_GRANTED &&
+                        grantResults[1] == PackageManager.PERMISSION_GRANTED){
                     if(isGPSSwitchChecked){
                         LocalBroadcastManager.getInstance(BaseActivity.this).sendBroadcast(new Intent("TURN_ON_GPS_BY_SWITCH"));
                     }

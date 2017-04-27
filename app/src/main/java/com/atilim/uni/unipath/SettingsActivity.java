@@ -237,6 +237,24 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
                 }
             });
 
+            final SwitchPreference readEmbeddedTextSwitchPreference = (SwitchPreference) getPreferenceManager().findPreference("read_embedded_switch");
+            readEmbeddedTextSwitchPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+                @Override
+                public boolean onPreferenceChange(Preference preference, Object newValue) {
+                    SharedPreferences sharedPreferences = getActivity().getPreferences(Context.MODE_PRIVATE);
+                    SharedPreferences.Editor editor = sharedPreferences.edit();
+                    try{
+                        editor.putBoolean("READ_EMBEDDED", (boolean) newValue);
+                    }
+                    catch(Exception ex){
+                        ex.printStackTrace();
+                    }
+                    editor.apply();
+
+                    return true;
+                }
+            });
+
             final Preference aboutPreference = getPreferenceManager().findPreference("about_button");
             aboutPreference.setOnPreferenceClickListener(new Preference.OnPreferenceClickListener() {
                 @Override

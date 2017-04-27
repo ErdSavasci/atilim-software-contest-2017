@@ -40,6 +40,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.atilim.uni.unipath.cons.Globals;
 import com.atilim.uni.unipath.customs.CustomSpinner;
 import com.atilim.uni.unipath.extralib.TouchImageView;
 import com.atilim.uni.unipath.interfaces.OnSpinnerEventsListenerInterface;
@@ -263,13 +264,18 @@ public class CalibrateActivity extends AppCompatActivity implements GoogleApiCli
     protected void onResume() {
         super.onResume();
 
-        atilimOverview = BitmapFactory.decodeResource(getResources(), R.drawable.atilim_overview);
-        if (atilimOverview.getHeight() >= atilimOverview.getWidth()) {
-            atilimOverviewOutput = Bitmap.createBitmap(atilimOverview, 0, atilimOverview.getHeight() / 2 - atilimOverview.getWidth() / 2, atilimOverview.getWidth(), atilimOverview.getWidth());
-        } else {
-            atilimOverviewOutput = Bitmap.createBitmap(atilimOverview, atilimOverview.getWidth() / 2 - atilimOverview.getHeight() / 2, 0, atilimOverview.getHeight(), atilimOverview.getHeight());
+        try{
+            atilimOverview = BitmapFactory.decodeResource(getResources(), R.drawable.atilim_overview);
+            if (atilimOverview.getHeight() >= atilimOverview.getWidth()) {
+                atilimOverviewOutput = Bitmap.createBitmap(atilimOverview, 0, atilimOverview.getHeight() / 2 - atilimOverview.getWidth() / 2, atilimOverview.getWidth(), atilimOverview.getWidth());
+            } else {
+                atilimOverviewOutput = Bitmap.createBitmap(atilimOverview, atilimOverview.getWidth() / 2 - atilimOverview.getHeight() / 2, 0, atilimOverview.getHeight(), atilimOverview.getHeight());
+            }
+            getWindow().getDecorView().setBackground(new BitmapDrawable(getResources(), atilimOverviewOutput));
         }
-        getWindow().getDecorView().setBackground(new BitmapDrawable(getResources(), atilimOverviewOutput));
+        catch(Exception ex){
+            ex.printStackTrace();
+        }
     }
 
     private boolean isExternalStorageAvailable() {
@@ -507,10 +513,15 @@ public class CalibrateActivity extends AppCompatActivity implements GoogleApiCli
     protected void onStop() {
         super.onStop();
 
-        if(atilimOverview != null)
-            atilimOverview.recycle();
-        if(atilimOverviewOutput != null)
-            atilimOverviewOutput.recycle();
+        try{
+            if(atilimOverview != null)
+                atilimOverview.recycle();
+            if(atilimOverviewOutput != null)
+                atilimOverviewOutput.recycle();
+        }
+        catch(Exception ex){
+            ex.printStackTrace();
+        }
     }
 
     @Override
