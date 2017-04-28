@@ -11,8 +11,10 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
+import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.location.LocationManager;
 import android.media.MediaScannerConnection;
 import android.net.Uri;
@@ -20,6 +22,7 @@ import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Environment;
+import android.os.Handler;
 import android.os.Vibrator;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -30,6 +33,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.Display;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewTreeObserver;
@@ -42,8 +46,10 @@ import android.widget.Toast;
 
 import com.atilim.uni.unipath.cons.Globals;
 import com.atilim.uni.unipath.customs.CustomSpinner;
+import com.atilim.uni.unipath.customs.CustomThread;
 import com.atilim.uni.unipath.extralib.TouchImageView;
 import com.atilim.uni.unipath.interfaces.OnSpinnerEventsListenerInterface;
+import com.atilim.uni.unipath.interfaces.ThreadRunInterface;
 import com.atilim.uni.unipath.utils.AccessPointInfo;
 import com.gc.materialdesign.views.ButtonRectangle;
 import com.google.android.gms.common.ConnectionResult;
@@ -74,7 +80,7 @@ import java.util.List;
 import java.util.Objects;
 
 public class CalibrateActivity extends AppCompatActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
-    private static final int EXT_READ_WRITE_REQUEST_PERMISSION = 1;
+    private static final int EXT_WRITE_REQUEST_PERMISSION = 1;
     private static final int LOCATION_ACCESS_PERMISSIONS_REQ = 2;
     private int referencePointID = 1;
     private LocationRequest mLocationRequest;
@@ -107,9 +113,8 @@ public class CalibrateActivity extends AppCompatActivity implements GoogleApiCli
             @Override
             public void onClick(View v) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    if (ContextCompat.checkSelfPermission(CalibrateActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED
-                            && ContextCompat.checkSelfPermission(CalibrateActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
-                        ActivityCompat.requestPermissions(CalibrateActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE}, EXT_READ_WRITE_REQUEST_PERMISSION);
+                    if (ContextCompat.checkSelfPermission(CalibrateActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED)
+                        ActivityCompat.requestPermissions(CalibrateActivity.this, new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, EXT_WRITE_REQUEST_PERMISSION);
                     else {
                         saveInformation(referencePointID);
                     }
@@ -242,7 +247,11 @@ public class CalibrateActivity extends AppCompatActivity implements GoogleApiCli
                         Bitmap mutableBitmap = workingBitmap.copy(Bitmap.Config.ARGB_8888, true);
 
                         Canvas canvas = new Canvas(mutableBitmap);
-                        canvas.drawCircle(actualX, actualY, 7, paint);
+                        //canvas.drawCircle(actualX, actualY, 7, paint);
+
+                        Bitmap locationMarker = BitmapFactory.decodeResource(getResources(), R.drawable.location_marker);
+                        Bitmap scaledLocationMarker = Bitmap.createScaledBitmap(locationMarker, locationMarker.getWidth() / 2, locationMarker.getHeight() / 2, false);
+                        canvas.drawBitmap(scaledLocationMarker, actualX, actualY, null);
 
                         floorPlanCalibrateImage.setImageBitmap(mutableBitmap);
 
@@ -272,10 +281,70 @@ public class CalibrateActivity extends AppCompatActivity implements GoogleApiCli
                 atilimOverviewOutput = Bitmap.createBitmap(atilimOverview, atilimOverview.getWidth() / 2 - atilimOverview.getHeight() / 2, 0, atilimOverview.getHeight(), atilimOverview.getHeight());
             }
             getWindow().getDecorView().setBackground(new BitmapDrawable(getResources(), atilimOverviewOutput));
+
+            roundCorners();
         }
         catch(Exception ex){
             ex.printStackTrace();
         }
+    }
+
+    private void roundCorners(){
+        CustomThread customThread = new CustomThread(new ThreadRunInterface() {
+            @Override
+            public void whenThreadRun() {
+                Display display = getWindowManager().getDefaultDisplay();
+                Point size = new Point();
+                display.getSize(size);
+
+                final ImageView roundCornersImageView = (ImageView) findViewById(R.id.roundCornersImageViewCalibrate);
+                Drawable drawable = getResources().getDrawable(R.drawable.layout_rounded_corner);
+                Canvas canvas = new Canvas();
+                final Bitmap roundCornersBitmap = Bitmap.createBitmap(size.x, size.y, Bitmap.Config.ARGB_8888);
+                canvas.setBitmap(roundCornersBitmap);
+                drawable.setBounds(0, 0, size.x, size.y);
+                drawable.draw(canvas);
+                int[] roundCornersBitmapMatrix = new int[roundCornersBitmap.getHeight() * roundCornersBitmap.getWidth()];
+                roundCornersBitmap.getPixels(roundCornersBitmapMatrix, 0, roundCornersBitmap.getWidth(), 0, 0, roundCornersBitmap.getWidth(), roundCornersBitmap.getHeight());
+                boolean cont = true;
+                for (int r = 0; r < roundCornersBitmapMatrix.length; r++){
+                    if(roundCornersBitmapMatrix[r] == Color.argb(0, 0, 0, 0) && cont){
+                        roundCornersBitmapMatrix[r] = Color.argb(255, 0, 0, 0);
+                    }
+                    else{
+                        cont = false;
+                    }
+
+                    if(r % size.x == 0 || r % size.x == size.x - 1){
+                        cont = true;
+                    }
+                }
+                for (int r = roundCornersBitmapMatrix.length - 1; r > 0; r--){
+                    if(roundCornersBitmapMatrix[r] == Color.argb(0, 0, 0, 0) && cont){
+                        roundCornersBitmapMatrix[r] = Color.argb(255, 0, 0, 0);
+                    }
+                    else{
+                        cont = false;
+                    }
+
+                    if(r % size.x == 0 || r % size.x == size.x - 1){
+                        cont = true;
+                    }
+                }
+
+                final int[] finalRoundCornersBitmapMatrix = roundCornersBitmapMatrix;
+                Handler mainHandler = new Handler(getApplicationContext().getMainLooper());
+                Runnable runnable = new Runnable() {
+                    @Override
+                    public void run() {
+                        roundCornersBitmap.setPixels(finalRoundCornersBitmapMatrix, 0, roundCornersBitmap.getWidth(), 0, 0, roundCornersBitmap.getWidth(), roundCornersBitmap.getHeight());
+                        roundCornersImageView.setImageBitmap(roundCornersBitmap);
+                    }
+                };
+                mainHandler.post(runnable);
+            }
+        });
+        customThread.start();
     }
 
     private boolean isExternalStorageAvailable() {
@@ -288,13 +357,17 @@ public class CalibrateActivity extends AppCompatActivity implements GoogleApiCli
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
         switch (requestCode) {
-            case EXT_READ_WRITE_REQUEST_PERMISSION:
-                if (grantResults.length > 0 && grantResults.length == 2 && grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
+            case EXT_WRITE_REQUEST_PERMISSION:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     saveInformation(referencePointID);
                 }
                 break;
             case LOCATION_ACCESS_PERMISSIONS_REQ:
-                if (grantResults.length > 0 && grantResults.length == 2 && grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
+                if (grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    saveInformation(referencePointID);
+                }
+                else if(grantResults.length == 2 && grantResults[0] == PackageManager.PERMISSION_GRANTED &&
+                        grantResults[1] == PackageManager.PERMISSION_GRANTED){
                     saveInformation(referencePointID);
                 }
             default:
@@ -512,24 +585,10 @@ public class CalibrateActivity extends AppCompatActivity implements GoogleApiCli
     @Override
     protected void onStop() {
         super.onStop();
-
-        try{
-            if(atilimOverview != null)
-                atilimOverview.recycle();
-            if(atilimOverviewOutput != null)
-                atilimOverviewOutput.recycle();
-        }
-        catch(Exception ex){
-            ex.printStackTrace();
-        }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-
-        if(isFinishing()){
-            floorPlanCalibrateImage.setImageDrawable(null);
-        }
     }
 }

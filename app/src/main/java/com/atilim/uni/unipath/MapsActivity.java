@@ -164,7 +164,7 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
 
             Globals.isUserInUniversityArea = isUserInUniversityArea;
 
-            SharedPreferences sharedPreferences = getPreferences(Context.MODE_PRIVATE);
+            SharedPreferences sharedPreferences = getSharedPreferences("SWITCH_PREFS", Context.MODE_PRIVATE);
             boolean autoStart = sharedPreferences.getBoolean("NAVIGATION_AUTOSTART", true);
 
             if (isUserInUniversityArea && (Globals.openNavigationActivityOnce || autoStart)) {
@@ -183,8 +183,6 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
         isMapReady = false;
         polylinesList = new ArrayList<>();
         setContentView(R.layout.activity_maps);
-
-        roundCorners();
 
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
@@ -210,10 +208,10 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             checkingPermission = true;
-            if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+            if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
                     checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(new String[]{
-                        Manifest.permission.ACCESS_COARSE_LOCATION,
+                        Manifest.permission.ACCESS_FINE_LOCATION,
                         Manifest.permission.ACCESS_COARSE_LOCATION}, LOCATION_ACCESS_PERMISSIONS_REQ);
             } else {
                 turnOnGPS();
@@ -407,11 +405,15 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
         if (!mGoogleApiClient.isConnected())
             mGoogleApiClient.connect();
 
+        isLastTimeGPSOn = false;
+
         initializeCheckLocationThread();
         initializeCheckGPSStatusThread();
         startCheckGPSStatusThread();
 
         dateTimeMillis = System.currentTimeMillis();
+
+        roundCorners();
     }
 
     @Override
@@ -543,7 +545,7 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
                     mLocationOfUser = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
                 } else {
                     requestPermissions(new String[]{
-                            Manifest.permission.ACCESS_COARSE_LOCATION,
+                            Manifest.permission.ACCESS_FINE_LOCATION,
                             Manifest.permission.ACCESS_COARSE_LOCATION}, LOCATION_ACCESS_PERMISSIONS_REQ);
                 }
             }

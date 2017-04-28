@@ -14,7 +14,7 @@
         android:summary="@string/pref_description_read_embedded"
         android:title="@string/pref_title_read_embedded"
         android:id="@+id/readEmbeddedTextSwitch"
-        android:icon="@drawable/autostart"/>
+        android:icon="@drawable/embedded_resource"/>
 
     <Preference
         android:id="@+id/licensesButton"

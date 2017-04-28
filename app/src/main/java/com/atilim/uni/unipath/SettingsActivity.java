@@ -223,7 +223,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             autostartSwitchPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
                 @Override
                 public boolean onPreferenceChange(Preference preference, Object newValue) {
-                    SharedPreferences sharedPreferences = getActivity().getPreferences(Context.MODE_PRIVATE);
+                    SharedPreferences sharedPreferences = getActivity().getSharedPreferences("SWITCH_PREFS", Context.MODE_PRIVATE);
                     SharedPreferences.Editor editor = sharedPreferences.edit();
                     try{
                         editor.putBoolean("NAVIGATION_AUTOSTART", (boolean) newValue);
@@ -241,7 +241,7 @@ public class SettingsActivity extends AppCompatPreferenceActivity {
             readEmbeddedTextSwitchPreference.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
                 @Override
                 public boolean onPreferenceChange(Preference preference, Object newValue) {
-                    SharedPreferences sharedPreferences = getActivity().getPreferences(Context.MODE_PRIVATE);
+                    SharedPreferences sharedPreferences = getActivity().getSharedPreferences("SWITCH_PREFS", Context.MODE_PRIVATE);
                     SharedPreferences.Editor editor = sharedPreferences.edit();
                     try{
                         editor.putBoolean("READ_EMBEDDED", (boolean) newValue);

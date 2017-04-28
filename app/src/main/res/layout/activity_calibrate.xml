@@ -82,4 +82,13 @@
         android:layout_above="@+id/dwScrollingValuePicker"
         android:layout_alignStart="@+id/floorPlanCalibrateImageView" />
 
+    <ImageView
+        android:id="@+id/roundCornersImageViewCalibrate"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_alignParentTop="true"
+        android:src="@drawable/layout_rounded_corner"
+        android:scaleType="fitXY"
+        android:contentDescription="@string/imageview_content_description"/>
+
 </RelativeLayout>

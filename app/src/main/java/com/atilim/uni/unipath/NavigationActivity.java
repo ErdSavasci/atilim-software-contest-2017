@@ -143,8 +143,11 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
     private ProgressBar circularLoadingProgressBarNavigation;
     private PointF refPointPosBestMatch;
     private String globalFloorPlanImageName = "engfloorminus2";
+    private Bitmap roundCornersBitmap;
+    private boolean externalStoragePermissionGranted = false;
 
     private static final String LOCATION_ADDRESS_KEY = "LOCATION_ADDRESS";
+    private static final int EXT_READ_REQUEST_PERMISSION_REQ = 2;
     private static final int LOCATION_ACCESS_PERMISSIONS_REQ = 1;
     private static final int LOCATION_RESOLUTION = 100;
     private static final float floorHeight = 3.0f;
@@ -185,7 +188,6 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
                     if (isUserInUniversityArea && mLocationOfUser != null) {
                         String currentBSSID = wifiManager.getConnectionInfo().getBSSID().toLowerCase();
                         final Integer floorNumber = Globals.routerMacFloorNumberMatches.get(currentBSSID);
-
                         if (mLocationOfUser.getAccuracy() >= 10 && (floorNumber != null && floorNumber > -3 && floorNumber < 5)) {
                             //FIND FLOOR NUMBER
                             final double altitude = mLocationOfUser.getAltitude();
@@ -195,11 +197,11 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
                             gyroscopeObserver.unregister();
                             recyclerView.setVisibility(View.GONE);
                             notInCampusAlertTextView.setVisibility(View.GONE);
-                            floorPlanNavigationImageImageView.setVisibility(View.VISIBLE);
                             floorPlanSelectorSpinner.setVisibility(View.VISIBLE);
+                            floorPlanNavigationImageImageView.setVisibility(View.VISIBLE);
 
-                            refreshButtonNavigation.setBackground(getResources().getDrawable(R.drawable.ic_sync_black));
-                            drawerButtonNavigation.setBackground(getResources().getDrawable(R.drawable.drawer_black));
+                            refreshButtonNavigation.setBackground(getResources().getDrawable(R.drawable.ic_sync_blue));
+                            drawerButtonNavigation.setBackground(getResources().getDrawable(R.drawable.drawer_blue));
 
                             floorPlanSelectorSpinner.setSelection(floorNumber + 2);
 
@@ -210,11 +212,25 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
 
                             circularLoadingProgressBarNavigation.setVisibility(View.VISIBLE);
 
+                            externalStoragePermissionGranted = false;
+
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                if (ContextCompat.checkSelfPermission(NavigationActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                                    ActivityCompat.requestPermissions(NavigationActivity.this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, EXT_READ_REQUEST_PERMISSION_REQ);
+                                    externalStoragePermissionGranted = false;
+                                }
+                                else {
+                                    externalStoragePermissionGranted = true;
+                                }
+                            } else {
+                                externalStoragePermissionGranted = true;
+                            }
+
                             if(locationDetThread == null) {
                                 locationDetThread = new CustomThread(new ThreadRunInterface() {
                                     @Override
                                     public void whenThreadRun() {
-                                        SharedPreferences sharedPreferences = getPreferences(Context.MODE_PRIVATE);
+                                        SharedPreferences sharedPreferences = getSharedPreferences("SWITCH_PREFS", Context.MODE_PRIVATE);
                                         boolean useAssets = sharedPreferences.getBoolean("READ_EMBEDDED", false);
 
                                         //FIND POSITION AT CORRESPONDED FLOOR
@@ -224,7 +240,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
 
                                         //DRAW BLUE CIRCLE ON CORRESPONDED FLOOR PLAN IMAGE W.R.T COORDINATES
                                         if (refPointPosBestMatch.x != -1 && refPointPosBestMatch.y != -1) {
-                                            String floorPlanImageName = floorNumber >= 2 ? ("engfloor" + floorNumber) : ("engfloorminus" + Math.abs(floorNumber));
+                                            String floorPlanImageName = floorNumber >= 0 ? ("engfloor" + floorNumber) : ("engfloorminus" + Math.abs(floorNumber));
 
                                             runOnUiThread(new Runnable() {
                                                 @Override
@@ -250,8 +266,16 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
                                             Bitmap workingBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), rotateMatrix, true);
                                             final Bitmap mutableBitmap = workingBitmap.copy(Bitmap.Config.ARGB_8888, true);
 
+                                            float oldX = refPointPosBestMatch.x;
+                                            refPointPosBestMatch.x = Math.abs(mutableBitmap.getWidth() - refPointPosBestMatch.y);
+                                            refPointPosBestMatch.y = oldX;
+
                                             Canvas canvas = new Canvas(mutableBitmap);
-                                            canvas.drawCircle(refPointPosBestMatch.y, refPointPosBestMatch.x, 7, paint);
+                                            //canvas.drawCircle(refPointPosBestMatch.x, refPointPosBestMatch.y, 7, paint);
+
+                                            Bitmap locationMarker = BitmapFactory.decodeResource(getResources(), R.drawable.location_marker);
+                                            Bitmap scaledLocationMarker = Bitmap.createScaledBitmap(locationMarker, locationMarker.getWidth() / 2, locationMarker.getHeight() / 2, false);
+                                            canvas.drawBitmap(scaledLocationMarker, refPointPosBestMatch.x, refPointPosBestMatch.y, null);
 
                                             runOnUiThread(new Runnable() {
                                                 @Override
@@ -284,7 +308,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
                                         public void whenThreadRun() {
                                             //FIND POSITION AT CORRESPONDED FLOOR
 
-                                            SharedPreferences sharedPreferences = getPreferences(Context.MODE_PRIVATE);
+                                            SharedPreferences sharedPreferences = getSharedPreferences("SWITCH_PREFS", Context.MODE_PRIVATE);
                                             boolean useAssets = sharedPreferences.getBoolean("READ_EMBEDDED", false);
                                             setWeightsAtFloor(floorNumber, useAssets);
                                             final int refPointIDBestMatch = getBestMatchRefPointID(floorNumber, useAssets);
@@ -292,7 +316,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
 
                                             //DRAW BLUE CIRCLE ON CORRESPONDED FLOOR PLAN IMAGE W.R.T COORDINATES
                                             if (refPointPosBestMatch.x != -1 && refPointPosBestMatch.y != -1) {
-                                                String floorPlanImageName = floorNumber >= 2 ? ("engfloor" + floorNumber) : ("engfloorminus" + Math.abs(floorNumber));
+                                                String floorPlanImageName = floorNumber >= 0 ? ("engfloor" + floorNumber) : ("engfloorminus" + Math.abs(floorNumber));
 
                                                 runOnUiThread(new Runnable() {
                                                     @Override
@@ -318,8 +342,16 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
                                                 Bitmap workingBitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), rotateMatrix, true);
                                                 final Bitmap mutableBitmap = workingBitmap.copy(Bitmap.Config.ARGB_8888, true);
 
+                                                float oldX = refPointPosBestMatch.x;
+                                                refPointPosBestMatch.x = Math.abs(mutableBitmap.getWidth() - refPointPosBestMatch.y);
+                                                refPointPosBestMatch.y = oldX;
+
                                                 Canvas canvas = new Canvas(mutableBitmap);
-                                                canvas.drawCircle(refPointPosBestMatch.y, refPointPosBestMatch.x, 7, paint);
+                                                //canvas.drawCircle(refPointPosBestMatch.x, refPointPosBestMatch.y, 7, paint);
+
+                                                Bitmap locationMarker = BitmapFactory.decodeResource(getResources(), R.drawable.location_marker);
+                                                Bitmap scaledLocationMarker = Bitmap.createScaledBitmap(locationMarker, locationMarker.getWidth() / 2, locationMarker.getHeight() / 2, false);
+                                                canvas.drawBitmap(scaledLocationMarker, refPointPosBestMatch.x, refPointPosBestMatch.y, null);
 
                                                 runOnUiThread(new Runnable() {
                                                     @Override
@@ -420,8 +452,6 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
         super.onCreate(savedInstanceState);
         setContentView(R.layout.app_bar_navigation);
 
-        roundCorners();
-
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
 
@@ -436,19 +466,21 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
 
         weightsFloor_2 = new Integer[85];
         weightsFloor_1 = new Integer[85];
-        weightsFloor0 = new Integer[85];
+        weightsFloor0 = new Integer[70];
         weightsFloor1 = new Integer[85];
         weightsFloor2 = new Integer[85];
         weightsFloor3 = new Integer[85];
-        weightsFloor4 = new Integer[85];
+        weightsFloor4 = new Integer[60];
         for (int i = 0; i < 85; i++) {
             weightsFloor_2[i] = 0;
             weightsFloor_1[i] = 0;
-            weightsFloor0[i] = 0;
+            if(i < 70)
+                weightsFloor0[i] = 0;
             weightsFloor1[i] = 0;
             weightsFloor2[i] = 0;
             weightsFloor3[i] = 0;
-            weightsFloor4[i] = 0;
+            if(i < 60)
+                weightsFloor4[i] = 0;
         }
         weightsFloor = new SparseArray<>();
         weightsFloor.put(-2, weightsFloor_2);
@@ -508,9 +540,21 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
         refreshButtonNavigation.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER) && wifiManager.isWifiEnabled()) {
                     if (checkAllConditions()) {
-                        startLocationIntentService();
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                            if (ContextCompat.checkSelfPermission(NavigationActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                                ActivityCompat.requestPermissions(NavigationActivity.this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, EXT_READ_REQUEST_PERMISSION_REQ);
+                                externalStoragePermissionGranted = false;
+                            }
+                            else {
+                                externalStoragePermissionGranted = true;
+                                startLocationIntentService();
+                            }
+                        } else {
+                            externalStoragePermissionGranted = true;
+                            startLocationIntentService();
+                        }
                     }
                 } else {
                     gyroscopeObserver.register(NavigationActivity.this);
@@ -599,7 +643,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
                 final ImageView roundCornersImageView = (ImageView) findViewById(R.id.roundCornersImageViewNavigation);
                 Drawable drawable = getResources().getDrawable(R.drawable.layout_rounded_corner);
                 Canvas canvas = new Canvas();
-                final Bitmap roundCornersBitmap = Bitmap.createBitmap(size.x, size.y, Bitmap.Config.ARGB_8888);
+                roundCornersBitmap = Bitmap.createBitmap(size.x, size.y, Bitmap.Config.ARGB_8888);
                 canvas.setBitmap(roundCornersBitmap);
                 drawable.setBounds(0, 0, size.x, size.y);
                 drawable.draw(canvas);
@@ -806,6 +850,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
+                    circularLoadingProgressBarNavigation.setVisibility(View.GONE);
                     notInCampusAlertTextView.setText(R.string.location_notfound_text);
                     notInCampusAlertTextView.setVisibility(View.VISIBLE);
                 }
@@ -866,6 +911,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
+                    circularLoadingProgressBarNavigation.setVisibility(View.GONE);
                     notInCampusAlertTextView.setText(R.string.location_notfound_text);
                     notInCampusAlertTextView.setVisibility(View.VISIBLE);
                 }
@@ -1247,6 +1293,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
+                    circularLoadingProgressBarNavigation.setVisibility(View.GONE);
                     notInCampusAlertTextView.setText(R.string.location_notfound_text);
                     notInCampusAlertTextView.setVisibility(View.VISIBLE);
                 }
@@ -1333,7 +1380,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
                     mLocationOfUser = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
                 } else {
                     requestPermissions(new String[]{
-                            Manifest.permission.ACCESS_COARSE_LOCATION,
+                            Manifest.permission.ACCESS_FINE_LOCATION,
                             Manifest.permission.ACCESS_COARSE_LOCATION}, LOCATION_ACCESS_PERMISSIONS_REQ);
                 }
             }
@@ -1353,6 +1400,12 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
                 } else if (grantResults.length == 2 && grantResults[0] == PackageManager.PERMISSION_GRANTED &&
                         grantResults[1] == PackageManager.PERMISSION_GRANTED) {
                     turnOnGPS();
+                }
+                break;
+            case EXT_READ_REQUEST_PERMISSION_REQ:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    externalStoragePermissionGranted = true;
+                    startLocationIntentService();
                 }
                 break;
             default:
@@ -1455,12 +1508,17 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
         if (!mGoogleApiClient.isConnected())
             mGoogleApiClient.connect();
 
+        isLastTimeGPSOn = false;
+        isLastTimeWifiOn = false;
+
         initializeCheckLocationThread();
         initializeCheckGPSStatusThread();
         initializeCheckWifiStatusThread();
         startCheckWifiStatusThread();
         dateTimeMillis = System.currentTimeMillis();
         gyroscopeObserver.register(this);
+
+        roundCorners();
 
         try{
             atilimOverview = BitmapFactory.decodeResource(getResources(), R.drawable.atilim_overview);
@@ -1525,6 +1583,9 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
 
             LocalBroadcastManager.getInstance(this).unregisterReceiver(receiverMaps);
             floorPlanNavigationImageImageView.setImageDrawable(null);
+
+            if(roundCornersBitmap != null)
+                roundCornersBitmap.recycle();
         }
     }
 
@@ -1534,7 +1595,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
             public void whenThreadRun() {
                 while (customThreadCheckGPSState.getFlag()) {
                     isGPSOn = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-                    if ((isGPSOn && isGPSOn != isLastTimeGPSOn) || ((System.currentTimeMillis() - dateTimeMillis >= (10 * 1000)) && isGPSOn) || (isGPSOn && !isLocationFound)) {
+                    if ((isGPSOn && isGPSOn != isLastTimeGPSOn) || ((System.currentTimeMillis() - dateTimeMillis >= (20 * 1000)) && isGPSOn) || (isGPSOn && !isLocationFound)) {
                         dateTimeMillis = System.currentTimeMillis();
 
                         if (customThreadCheckLocation != null) {
