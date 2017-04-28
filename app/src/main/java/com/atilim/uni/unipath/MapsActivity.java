@@ -265,6 +265,9 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
                     startLocationIntentService();
                     planRouteOrPutMarker();
                 }
+                else if(!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
+                    turnOnGPS();
+                }
             }
         });
 

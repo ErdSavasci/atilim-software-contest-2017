@@ -49,5 +49,7 @@ public class Globals {
         routerMacFloorNumberMatches.put("94:b4:0f:16:0e:30", 4);
         routerMacFloorNumberMatches.put("94:b4:0f:16:0c:c0", 4);
         routerMacFloorNumberMatches.put("94:b4:0f:15:0d:f0", 4);
+
+        //routerMacFloorNumberMatches.put("00:22:33:e2:07:b2", 4); (FOR TEST PURPOSES)
     }
 }

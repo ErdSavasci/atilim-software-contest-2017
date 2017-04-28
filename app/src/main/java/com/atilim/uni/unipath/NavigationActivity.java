@@ -101,7 +101,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
     private String mAddressOutput = "";
     private LocationRequest mLocationRequest;
     private boolean checkingPermission = false;
-    private boolean isUserInUniversityArea;
+    private boolean isUserInUniversityArea = false;
     private boolean isGPSOn;
     private boolean isLastTimeGPSOn;
     private boolean isWifiOn;
@@ -1595,7 +1595,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
             public void whenThreadRun() {
                 while (customThreadCheckGPSState.getFlag()) {
                     isGPSOn = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-                    if ((isGPSOn && isGPSOn != isLastTimeGPSOn) || ((System.currentTimeMillis() - dateTimeMillis >= (20 * 1000)) && isGPSOn) || (isGPSOn && !isLocationFound)) {
+                    if ((isGPSOn && isGPSOn != isLastTimeGPSOn) || ((System.currentTimeMillis() - dateTimeMillis >= (20 * 1000)) && isGPSOn && isUserInUniversityArea) || (isGPSOn && !isLocationFound)) {
                         dateTimeMillis = System.currentTimeMillis();
 
                         if (customThreadCheckLocation != null) {
