@@ -134,7 +134,7 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
         @Override
         public void onReceive(Context context, Intent intent) {
             checkingPermission = true;
-            if (intent.getAction().equals("TURN_ON_GPS_BY_SWITCH") && !intent.getBooleanExtra("FIRST_TIME", true)) {
+            if (intent.getAction().equals("TURN_ON_GPS_BY_SWITCH") && intent.getBooleanExtra("USER_CLICKED", false)) {
                 if (ActivityCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
                         ActivityCompat.checkSelfPermission(MapsActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                     ActivityCompat.requestPermissions(MapsActivity.this, new String[]{

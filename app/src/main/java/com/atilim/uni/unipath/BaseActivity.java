@@ -32,6 +32,7 @@ import android.support.v7.widget.SwitchCompat;
 import android.text.InputType;
 import android.view.Display;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.CompoundButton;
 import android.widget.EditText;
@@ -63,7 +64,7 @@ public class BaseActivity extends Activity implements NavigationView.OnNavigatio
     private LocationManager locationManager;
     private boolean isGPSSwitchChecked = false;
     private SwitchCompat gpsHeaderSwitch;
-    private boolean isFirstTime = true;
+    private boolean isClickedByUser = false;
     private CustomThread gpsStatusThread;
     private boolean isTwiceClicked = false;
     private Handler mHandler;
@@ -114,26 +115,38 @@ public class BaseActivity extends Activity implements NavigationView.OnNavigatio
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
                 isGPSSwitchChecked = isChecked;
 
-                if (ActivityCompat.checkSelfPermission(BaseActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                if (ActivityCompat.checkSelfPermission(BaseActivity.this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
                         ActivityCompat.checkSelfPermission(BaseActivity.this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
                     ActivityCompat.requestPermissions(BaseActivity.this, new String[]{
-                            Manifest.permission.ACCESS_COARSE_LOCATION,
+                            Manifest.permission.ACCESS_FINE_LOCATION,
                             Manifest.permission.ACCESS_COARSE_LOCATION}, LOCATION_ACCESS_PERMISSIONS_REQ);
                 } else {
                     if(isChecked){
                         Intent intent = new Intent("TURN_ON_GPS_BY_SWITCH");
-                        intent.putExtra("FIRST_TIME", isFirstTime);
+                        intent.putExtra("USER_CLICKED", isClickedByUser);
                         LocalBroadcastManager.getInstance(BaseActivity.this).sendBroadcast(intent);
-                        isFirstTime = false;
                     }
                 }
+
+                isClickedByUser = false;
+            }
+        });
+        gpsHeaderSwitch.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                isClickedByUser = true;
+
+                return false;
             }
         });
         gpsHeaderSwitch.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                gpsStatusThread.stopRunning(false);
+
+                isClickedByUser = true;
+
                 if(!gpsHeaderSwitch.isChecked()){
-                    gpsStatusThread.stopRunning(false);
                     Intent onGPS = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
                     startActivity(onGPS);
                 }
