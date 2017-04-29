@@ -121,7 +121,7 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
     private boolean isLocationFound;
     private SupportMapFragment mapFragment;
     private long dateTimeMillis = 0L;
-    private boolean printAddressOnce = true;
+    private boolean printAddressOnce = false;
     private boolean isRefreshButtonClicked = true;
 
     private static final String LOCATION_ADDRESS_KEY = "LOCATION_ADDRESS";

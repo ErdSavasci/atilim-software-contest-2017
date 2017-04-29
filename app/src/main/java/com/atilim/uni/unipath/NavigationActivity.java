@@ -1557,13 +1557,6 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
                 customThreadCheckLocation.stopRunning(false);
             if (customThreadCheckGPSState != null)
                 customThreadCheckGPSState.stopRunning(false);
-
-            if (atilimOverviewOutput != null) {
-                atilimOverviewOutput.recycle();
-            }
-            if (atilimOverview != null) {
-                atilimOverview.recycle();
-            }
         }
         catch(Exception ex){
             ex.printStackTrace();
@@ -1582,10 +1575,6 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
                 customThreadCheckGPSState.stopRunning(false);
 
             LocalBroadcastManager.getInstance(this).unregisterReceiver(receiverMaps);
-            floorPlanNavigationImageImageView.setImageDrawable(null);
-
-            if(roundCornersBitmap != null)
-                roundCornersBitmap.recycle();
         }
     }
 
