@@ -424,7 +424,6 @@ public class CalibrateActivity extends AppCompatActivity implements GoogleApiCli
                             isSuccess = txtFile.delete();
 
                         if (isSuccess && scanResults != null) {
-                            FileWriter fileWriter = new FileWriter(txtFile);
                             JSONArray referencePointInfoArray = new JSONArray();
 
                             for (ScanResult scanResult : scanResults) {
@@ -448,35 +447,42 @@ public class CalibrateActivity extends AppCompatActivity implements GoogleApiCli
                             if (!isAPFound) {
                                 Toast.makeText(getApplicationContext(), "Cannot Find Eduroam or ATILIM_WIFI network", Toast.LENGTH_SHORT).show();
                             }
+                            else {
+                                FileWriter fileWriter = null;
+                                try {
+                                    fileWriter = new FileWriter(txtFile);
 
-                            try {
-                                JSONObject referencePointAP = new JSONObject();
-                                referencePointAP.put("AccessPoints", referencePointInfoArray);
-                                JSONObject referencePoint= new JSONObject();
-                                referencePoint.put("ReferencePoint" + referencePointID, referencePointAP);
-                                referencePoint.put("FloorNumber", floorNumber);
-                                referencePoint.put("XPos", Float.toString(dotXPos));
-                                referencePoint.put("YPos", Float.toString(dotYPos));
-                                fileWriter.append(referencePoint.toString());
-                                Toast.makeText(getApplicationContext(), "Reference point " + referencePointID + " save successful", Toast.LENGTH_SHORT).show();
+                                    JSONObject referencePointAP = new JSONObject();
+                                    referencePointAP.put("AccessPoints", referencePointInfoArray);
+                                    JSONObject referencePoint = new JSONObject();
+                                    referencePoint.put("ReferencePoint" + referencePointID, referencePointAP);
+                                    referencePoint.put("FloorNumber", floorNumber);
+                                    referencePoint.put("XPos", Float.toString(dotXPos));
+                                    referencePoint.put("YPos", Float.toString(dotYPos));
+                                    fileWriter.append(referencePoint.toString());
+                                    Toast.makeText(getApplicationContext(), "Reference point " + referencePointID + " save successful", Toast.LENGTH_SHORT).show();
 
-                                this.referencePointID++;
-                                DWUtils.scrollToValue(scrollingValuePicker.getScrollView(), this.referencePointID, 100, 1, scrollingValuePicker.getViewMultipleSize());
-                                refPointPositionTextView.setText(String.valueOf(this.referencePointID));
+                                    this.referencePointID++;
+                                    DWUtils.scrollToValue(scrollingValuePicker.getScrollView(), this.referencePointID, this.referencePointID - 1 + 100.0f, this.referencePointID - 1, scrollingValuePicker.getViewMultipleSize());
+                                    refPointPositionTextView.setText(String.valueOf(this.referencePointID));
 
-                                Intent mediaScannerIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-                                Uri fileContentUri = Uri.fromFile(txtDir);
-                                mediaScannerIntent.setData(fileContentUri);
-                                this.sendBroadcast(mediaScannerIntent);
-                                MediaScannerConnection.scanFile(getApplicationContext(), new String[]{ txtDir.toString() }, null, null);
+                                    Intent mediaScannerIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+                                    Uri fileContentUri = Uri.fromFile(txtDir);
+                                    mediaScannerIntent.setData(fileContentUri);
+                                    this.sendBroadcast(mediaScannerIntent);
+                                    MediaScannerConnection.scanFile(getApplicationContext(), new String[]{txtDir.toString()}, null, null);
 
-                            } catch (JSONException ex) {
-                                Toast.makeText(getApplicationContext(), "Cannot save", Toast.LENGTH_SHORT).show();
-                                ex.printStackTrace();
+                                } catch (JSONException ex) {
+                                    Toast.makeText(getApplicationContext(), "Cannot save", Toast.LENGTH_SHORT).show();
+                                    ex.printStackTrace();
+                                } finally {
+                                    if (fileWriter != null) {
+                                        fileWriter.flush();
+                                        fileWriter.close();
+                                    }
+                                }
                             }
 
-                            fileWriter.flush();
-                            fileWriter.close();
                         } else {
                             Toast.makeText(getApplicationContext(), "Cannot save", Toast.LENGTH_SHORT).show();
                         }
