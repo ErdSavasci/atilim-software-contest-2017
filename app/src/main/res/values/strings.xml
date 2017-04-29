@@ -45,7 +45,7 @@
     <string name="pref_description_calibrate">Save reference points to calculate location indoor</string>
 
     <string name="title_activity_maps">Map</string>
-    <string name="user_is_not_in_university_text">YOU ARE NOT IN \ATILIM UNIVERSITY CAMPUS</string>
+    <string name="user_is_not_in_university_text">YOU ARE NOT IN \nATILIM UNIVERSITY CAMPUS</string>
     <string name="user_is_not_in_department_text">YOU ARE NOT IN ANY\n ATILIM UNIVERSITY DEPARTMENT</string>
 
     <string name="about_dialog_text">Version Number: 01\n Build Number: 20171104\n Atılım University © 2017</string>

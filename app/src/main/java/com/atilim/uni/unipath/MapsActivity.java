@@ -122,6 +122,7 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
     private SupportMapFragment mapFragment;
     private long dateTimeMillis = 0L;
     private boolean printAddressOnce = true;
+    private boolean isRefreshButtonClicked = true;
 
     private static final String LOCATION_ADDRESS_KEY = "LOCATION_ADDRESS";
     private static final String KEY_CAMERA_POSITION = "CAMERA_POSITION";
@@ -262,6 +263,8 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
             @Override
             public void onClick(View v) {
                 if (checkAllConditions()) {
+                    isRefreshButtonClicked = true;
+                    printAddressOnce = true;
                     startLocationIntentService();
                     planRouteOrPutMarker();
                 }
@@ -446,7 +449,7 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
             public void whenThreadRun() {
                 while (customThreadCheckGPSState.getFlag()) {
                     isGPSOn = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-                    if ((isGPSOn && isGPSOn != isLastTimeGPSOn) || ((System.currentTimeMillis() - dateTimeMillis >= (5 * 1000)) && isGPSOn && !isLocationFound) || (isGPSOn && !isLocationFound)) {
+                    if ((isGPSOn && isGPSOn != isLastTimeGPSOn) || ((System.currentTimeMillis() - dateTimeMillis >= (10 * 1000)) && isGPSOn) || (isGPSOn && !isLocationFound)) {
                         dateTimeMillis = System.currentTimeMillis();
 
                         if (customThreadCheckLocation != null) {
@@ -693,7 +696,10 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
     private void planRouteOrPutMarker() {
         try {
             if (mLocationOfUser != null) {
-                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(mLocationOfUser.getLatitude(), mLocationOfUser.getLongitude()), DEFAULT_ZOOM));
+                if(isRefreshButtonClicked) {
+                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(mLocationOfUser.getLatitude(), mLocationOfUser.getLongitude()), DEFAULT_ZOOM));
+                    isRefreshButtonClicked = false;
+                }
                 //LocationAsyncTask locationAsyncTask = new LocationAsyncTask();
                 //locationAsyncTask.execute(new LatLng(mLocationOfUser.getLatitude(), mLocationOfUser.getLongitude()));
 
