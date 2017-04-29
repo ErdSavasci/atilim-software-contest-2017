@@ -132,6 +132,10 @@ public class CalibrateActivity extends AppCompatActivity implements GoogleApiCli
                 floorPlanCalibrateImage.setImageDrawable(new BitmapDrawable(getResources(), floorPlanImage));
                 dotXPos = -1f;
                 dotYPos = -1f;
+
+                DWUtils.scrollToValue(scrollingValuePicker.getScrollView(), referencePointID, 100.0f, 0.0f, (-1.0f) * scrollingValuePicker.getViewMultipleSize());
+                referencePointID = 1;
+                refPointPositionTextView.setText(String.valueOf(referencePointID));
             }
         });
 
@@ -182,6 +186,10 @@ public class CalibrateActivity extends AppCompatActivity implements GoogleApiCli
 
                 Bitmap floorPlanImage = BitmapFactory.decodeResource(getResources(), getResources().getIdentifier(floorPlanImageName, "drawable", getPackageName()));
                 floorPlanCalibrateImage.setImageDrawable(new BitmapDrawable(getResources(), floorPlanImage));
+
+                DWUtils.scrollToValue(scrollingValuePicker.getScrollView(), referencePointID, 100.0f, 0.0f, (-1.0f) * scrollingValuePicker.getViewMultipleSize());
+                referencePointID = 1;
+                refPointPositionTextView.setText(String.valueOf(referencePointID));
             }
 
             @Override

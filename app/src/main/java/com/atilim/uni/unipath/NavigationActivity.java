@@ -245,7 +245,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
                                             runOnUiThread(new Runnable() {
                                                 @Override
                                                 public void run() {
-                                                    Toast.makeText(getApplicationContext(), refPointPosBestMatch.toString(), Toast.LENGTH_SHORT).show();
+                                                    Toast.makeText(getApplicationContext(), "Location is found", Toast.LENGTH_SHORT).show();
                                                 }
                                             });
 
