@@ -464,23 +464,21 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setAdapter(new PanoramaAdapter(getApplicationContext()));
 
-        weightsFloor_2 = new Integer[85];
-        weightsFloor_1 = new Integer[85];
-        weightsFloor0 = new Integer[70];
-        weightsFloor1 = new Integer[85];
-        weightsFloor2 = new Integer[85];
-        weightsFloor3 = new Integer[85];
-        weightsFloor4 = new Integer[60];
-        for (int i = 0; i < 85; i++) {
+        weightsFloor_2 = new Integer[100];
+        weightsFloor_1 = new Integer[100];
+        weightsFloor0 = new Integer[100];
+        weightsFloor1 = new Integer[100];
+        weightsFloor2 = new Integer[100];
+        weightsFloor3 = new Integer[100];
+        weightsFloor4 = new Integer[100];
+        for (int i = 0; i < 100; i++) {
             weightsFloor_2[i] = 0;
             weightsFloor_1[i] = 0;
-            if(i < 70)
-                weightsFloor0[i] = 0;
+            weightsFloor0[i] = 0;
             weightsFloor1[i] = 0;
             weightsFloor2[i] = 0;
             weightsFloor3[i] = 0;
-            if(i < 60)
-                weightsFloor4[i] = 0;
+            weightsFloor4[i] = 0;
         }
         weightsFloor = new SparseArray<>();
         weightsFloor.put(-2, weightsFloor_2);
