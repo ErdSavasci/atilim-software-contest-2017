@@ -9,7 +9,7 @@
         android:icon="@drawable/autostart"/>
 
     <SwitchPreference
-        android:defaultValue="false"
+        android:defaultValue="true"
         android:key="read_embedded_switch"
         android:summary="@string/pref_description_read_embedded"
         android:title="@string/pref_title_read_embedded"

@@ -93,6 +93,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 
 public class NavigationActivity extends BaseActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener {
@@ -145,6 +146,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
     private String globalFloorPlanImageName = "engfloorminus2";
     private Bitmap roundCornersBitmap;
     private boolean externalStoragePermissionGranted = false;
+    private boolean noExceptionThrownDuringEstimatingLocation = true;
 
     private static final String LOCATION_ADDRESS_KEY = "LOCATION_ADDRESS";
     private static final int EXT_READ_REQUEST_PERMISSION_REQ = 2;
@@ -231,7 +233,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
                                     @Override
                                     public void whenThreadRun() {
                                         SharedPreferences sharedPreferences = getSharedPreferences("SWITCH_PREFS", Context.MODE_PRIVATE);
-                                        boolean useAssets = sharedPreferences.getBoolean("READ_EMBEDDED", false);
+                                        boolean useAssets = sharedPreferences.getBoolean("READ_EMBEDDED", true);
 
                                         //FIND POSITION AT CORRESPONDED FLOOR
                                         setWeightsAtFloor(floorNumber, useAssets);
@@ -239,7 +241,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
                                         refPointPosBestMatch = getBestMatchRefPointPos(refPointIDBestMatch, floorNumber, useAssets);
 
                                         //DRAW BLUE CIRCLE ON CORRESPONDED FLOOR PLAN IMAGE W.R.T COORDINATES
-                                        if (refPointPosBestMatch.x != -1 && refPointPosBestMatch.y != -1) {
+                                        if (refPointPosBestMatch.x != -1 && refPointPosBestMatch.y != -1 && noExceptionThrownDuringEstimatingLocation) {
                                             String floorPlanImageName = floorNumber >= 0 ? ("engfloor" + floorNumber) : ("engfloorminus" + Math.abs(floorNumber));
 
                                             runOnUiThread(new Runnable() {
@@ -315,7 +317,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
                                             refPointPosBestMatch = getBestMatchRefPointPos(refPointIDBestMatch, floorNumber, useAssets);
 
                                             //DRAW BLUE CIRCLE ON CORRESPONDED FLOOR PLAN IMAGE W.R.T COORDINATES
-                                            if (refPointPosBestMatch.x != -1 && refPointPosBestMatch.y != -1) {
+                                            if (refPointPosBestMatch.x != -1 && refPointPosBestMatch.y != -1 && noExceptionThrownDuringEstimatingLocation) {
                                                 String floorPlanImageName = floorNumber >= 0 ? ("engfloor" + floorNumber) : ("engfloorminus" + Math.abs(floorNumber));
 
                                                 runOnUiThread(new Runnable() {
@@ -750,7 +752,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
             String[] allFilesInFloorFolder;
 
             if(useAssets){
-                allFilesInFloorFolder = getAssets().list("floorNumber" + Integer.toString(floorNumber).replace("-", "_") + "/");
+                allFilesInFloorFolder = getAssets().list("floorNumber" + Integer.toString(floorNumber).replace("-", "_"));
             }
             else{
                 if (isExternalStorageAvailable()) {
@@ -758,7 +760,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
                     txtDir = new File(rootFolder + "/AccessPointsInfo/floorNumber" + Integer.toString(floorNumber).replace("-", "_") + "/");
 
                     if(!txtDir.exists()){
-                        allFilesInFloorFolder = getAssets().list("floorNumber" + Integer.toString(floorNumber).replace("-", "_") + "/");
+                        allFilesInFloorFolder = getAssets().list("floorNumber" + Integer.toString(floorNumber).replace("-", "_"));
                     }
                     else{
                         allFilesInFloorFolder = txtDir.list();
@@ -769,7 +771,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
                     txtDir = new File(rootFolder + "/AccessPointsInfo/floorNumber" + Integer.toString(floorNumber).replace("-", "_") + "/");
 
                     if(!txtDir.exists()){
-                        allFilesInFloorFolder = getAssets().list("floorNumber" + Integer.toString(floorNumber).replace("-", "_") + "/");
+                        allFilesInFloorFolder = getAssets().list("floorNumber" + Integer.toString(floorNumber).replace("-", "_"));
                     }
                     else{
                         allFilesInFloorFolder = txtDir.list();
@@ -844,7 +846,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
 
         } catch (Exception ex) {
             ex.printStackTrace();
-
+            noExceptionThrownDuringEstimatingLocation = false;
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -905,7 +907,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
                     Float.parseFloat(fileJSONObject.getString("YPos"))) : new PointF(-1, -1);
         } catch (Exception ex) {
             ex.printStackTrace();
-
+            noExceptionThrownDuringEstimatingLocation = false;
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -1257,7 +1259,9 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
             FileReader fileReader = null;
             BufferedReader fileBufferedReader = null;
 
-            if(useAssets){
+            boolean exists = Arrays.asList(getAssets().list("floorNumber" + Integer.toString(floorNumber).replace("-", "_"))).contains(txtFileName);
+
+            if(useAssets && exists){
                 fileBufferedReader = new BufferedReader(new InputStreamReader(getAssets().open("floorNumber" + Integer.toString(floorNumber).replace("-", "_") + "/" + txtFileName)));
             }
             else if(txtDir != null){
@@ -1266,7 +1270,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
                 fileBufferedReader = new BufferedReader(fileReader);
             }
 
-            if ((!useAssets && txtDir != null && txtDir.exists() && txtFile.exists()) || useAssets) {
+            if ((!useAssets && txtDir != null && txtDir.exists() && txtFile.exists()) || (useAssets && exists)) {
                 String fileContent;
                 StringBuilder stringBuilder = new StringBuilder();
                 while ((fileContent = fileBufferedReader.readLine()) != null) {
@@ -1287,7 +1291,7 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
             return fileJSONObject != null ? (fileJSONObject.getJSONObject("ReferencePoint" + referencePointID).getJSONArray("AccessPoints").length()) : 0;
         } catch (Exception ex) {
             ex.printStackTrace();
-
+            noExceptionThrownDuringEstimatingLocation = false;
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -1340,9 +1344,11 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
             return fileJSONObject != null ? (fileJSONObject.getJSONObject("ReferencePoint" + referencePointID).getJSONArray("AccessPoints").getJSONObject(arrayIndex).getString(key)) : null;
         } catch (IOException ex) {
             ex.printStackTrace();
+            noExceptionThrownDuringEstimatingLocation = false;
             return null;
         } catch (JSONException ex) {
             ex.printStackTrace();
+            noExceptionThrownDuringEstimatingLocation = false;
             return null;
         }
     }
@@ -1619,7 +1625,8 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
     }
 
     private void startCheckGPSStatusThread() {
-        customThreadCheckGPSState.start();
+        if(customThreadCheckGPSState != null && !customThreadCheckGPSState.isAlive())
+            customThreadCheckGPSState.start();
     }
 
     private void initializeCheckWifiStatusThread() {
@@ -1662,7 +1669,8 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
     }
 
     private void startCheckWifiStatusThread() {
-        customThreadCheckWifiState.start();
+        if(customThreadCheckWifiState != null && !customThreadCheckWifiState.isAlive())
+            customThreadCheckWifiState.start();
     }
 
     private void initializeCheckLocationThread() {
@@ -1689,7 +1697,8 @@ public class NavigationActivity extends BaseActivity implements GoogleApiClient.
     }
 
     private void startCheckLocationThread() {
-        customThreadCheckLocation.start();
+        if(customThreadCheckLocation != null && !customThreadCheckLocation.isAlive())
+            customThreadCheckLocation.start();
     }
 
     private class RetrieveResponseFromURL extends AsyncTask<URL, Integer, String> {

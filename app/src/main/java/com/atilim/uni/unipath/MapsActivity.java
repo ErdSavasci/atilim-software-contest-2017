@@ -484,7 +484,8 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
     }
 
     private void startCheckGPSStatusThread() {
-        customThreadCheckGPSState.start();
+        if(customThreadCheckGPSState != null && !customThreadCheckGPSState.isAlive())
+            customThreadCheckGPSState.start();
     }
 
     private void initializeCheckLocationThread() {
@@ -524,7 +525,8 @@ public class MapsActivity extends BaseFragmentActivity implements OnMapReadyCall
     }
 
     private void startCheckLocationThread() {
-        customThreadCheckLocation.start();
+        if(customThreadCheckLocation != null && !customThreadCheckLocation.isAlive())
+            customThreadCheckLocation.start();
     }
 
     @Override
